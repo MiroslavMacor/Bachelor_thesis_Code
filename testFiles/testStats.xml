@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><?xml-stylesheet type="text/css" href="#style"?><remsig><extras id="style">firstLine {}
+extras, operationId { display: none }
+
+remsig {
+font-size:15px;
+width: 100%;
+display: table;
+text-align: center;
+}
+
+header {
+width: 100%;
+display: table-row;
+background-color: cornflowerblue;
+color: #fafafa;
+font-weight: 600;
+}
+
+certificate { 
+width: 100%;
+display: table-row;
+color: #555 
+}
+
+certificate:nth-child(odd) {
+background-color: #fafafa;
+}
+
+qualified {
+color: cornflowerblue;
+background-color: cornflowerblue;
+}
+
+notQualified {
+color: lavender;
+background-color: lavender;
+}
+
+qualified, notQualified {
+border-radius: 2px;
+width: 8px;
+overflow: hidden;
+display: inline-block;
+margin: 1px 0 0 2px;
+vertical-align: middle;
+height: 25px;
+}
+
+dn, id, userId, issuer, serialNumber, expirationFrom, expirationTo {
+display: table-cell;
+vertical-align: middle;
+height: 27px;
+}
+
+id {
+width: 35px;
+}</extras><certificate id="1104" userId="1"><notQualified>0</notQualified><userId>1</userId><id>1104</id><dn>CN=sub1,OU=testDep,O=remsigTest,ST=czechRepublik,C=cz</dn><issuer>CN=greatTester,C=cz,ST=czechRepublik,L=brno,1.2.840.113549.1.9.1=#160f74657374657231406963732e636f6d,OU=testDep,O=remsigTest</issuer><serialNumber>1048577</serialNumber><expirationFrom>1455623422</expirationFrom><expirationTo>1518695422</expirationTo></certificate><certificate id="1105" userId="2"><notQualified>0</notQualified><userId>2</userId><id>1105</id><dn>CN=sub2,OU=testDep,O=remsigTest,ST=czechRepublik,C=cz</dn><issuer>CN=greatTester,C=cz,ST=czechRepublik,L=brno,1.2.840.113549.1.9.1=#160f74657374657231406963732e636f6d,OU=testDep,O=remsigTest</issuer><serialNumber>1048578</serialNumber><expirationFrom>1455623453</expirationFrom><expirationTo>1518695453</expirationTo></certificate><certificate id="1106" userId="3"><notQualified>0</notQualified><userId>3</userId><id>1106</id><dn>CN=sub3,OU=testDep,O=remsigTest,ST=czechRepublik,C=cz</dn><issuer>CN=greatTester,C=cz,ST=czechRepublik,L=brno,1.2.840.113549.1.9.1=#160f74657374657231406963732e636f6d,OU=testDep,O=remsigTest</issuer><serialNumber>1048579</serialNumber><expirationFrom>1455623474</expirationFrom><expirationTo>1518695474</expirationTo></certificate><operationId>1457802600136</operationId></remsig>
