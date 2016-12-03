@@ -17,109 +17,91 @@ import java.net.URL;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 /**
  *
  * @author miroslav
  */
 public class IntegrationTest {
-    public IntegrationTest()
-    {}
-    String pathTotestFilesDirectory = "/home/miroslav/Documents/toDelete/80/integrationTest/input/";
+    public IntegrationTest(){
+    }    
+    Properties config = TestManager.prepareConfigFile(TestManager.CONFIG_FILE_TEST);
+    final String pathTotestFilesDirectory = config.getProperty("testFilesDirectory");
+    final String serverAddress = config.getProperty("serverAddress");
+    final String p12KeyFile = config.getProperty("pathToP12Keystore");
+    final String p12KeyPassword = config.getProperty("p12Pass");
+    final String defaultKeystore = config.getProperty("pathDefaultKeystore");
+    final String defaultKeystorePass = config.getProperty("defaultKeystorePass");
+    final String trustStore = config.getProperty("pathToJKSTruststore");
+    final String trustStorePass = config.getProperty("trustoreJksPass");    
+    
     ArrayList<String> allMethods = loadAllMethods();
     TestManager testManager = new TestManager();
-    public static void main(String[] args) throws Exception {
-        
-        TestManager testManager = new TestManager();
-        PerformanceTest per = new PerformanceTest();
+    Logger log = TestManager.setUpLogger(IntegrationTest.class);        
+    
+    public static void main(String[] args) throws Exception {                
         IntegrationTest integrationTest = new IntegrationTest();
         
-        
-        File testFilesDirectory = new File(integrationTest.pathTotestFilesDirectory);
-        
-        //testing methots with some null parameters
-        ArrayList<String> nullFiles =  integrationTest.listFilesForFolder(new File(integrationTest.pathTotestFilesDirectory+"null/"));        
-        integrationTest.runTest(nullFiles, true);
+        integrationTest.executeTest();
+    }
+    public void executeTest(){
+        // testing with null parameters
+        ArrayList<String> nullFiles =  listFilesForFolder(new File(pathTotestFilesDirectory+"null/"));        
+        runTest(nullFiles, true);
         
         //testing with incorrect input parameters
-        ArrayList<String> incorrectInputFiles =  integrationTest.listFilesForFolder(new File(integrationTest.pathTotestFilesDirectory+"incorrectData/"));
-        integrationTest.runTest(incorrectInputFiles, true);
+        ArrayList<String> incorrectInputFiles =  listFilesForFolder(new File(pathTotestFilesDirectory+"incorrectData/"));
+        runTest(incorrectInputFiles, true);
+        // testing with correct data
+        ArrayList<String> correctData =  listFilesForFolder(new File(pathTotestFilesDirectory+"correctData/"));        
+        runTest(nullFiles, false);
         
-        ArrayList<String> correctData =  integrationTest.listFilesForFolder(new File(integrationTest.pathTotestFilesDirectory+"correctData/"));        
-        integrationTest.runTest(nullFiles, false);
         
-
-        for (String file : correctData) {
-            String currentMethod = integrationTest.getMethodName(file);
-            String currentPostData = testManager.convertToStringFromXmlFile(file);
-            
-            //System.out.println(currentMethod+" "+ currentPostData);
-            if(currentMethod != null){
-
-                URL sslUrl = new URL("https://localhost:8443/RemSig/"+currentMethod);
-
-                HttpsURLConnection con = integrationTest.establishConnection(sslUrl,true);
-                //System.out.println("" + currentMethod + file);                        
-                String response = integrationTest.post(con, currentPostData);
-                PrintWriter out = new PrintWriter(integrationTest.pathTotestFilesDirectory+ "output/" +currentMethod + ".xml");
-                //out.println(response);
-                out.close();
-                if (response == null)
-                {
-                    System.out.println("nullResponse " + currentMethod +" "+ file +" "+ response);                        
-                }
-                if(!response.contains("error"))
-                {
-                    System.out.println("NoError " + currentMethod +" "+ file +" "+ response);                        
-                }
-                System.out.println(response);
-            }
-                    
-        }
-                
-	}
+    }
+    
     public void runTest(ArrayList<String> inputFolder, boolean isSupposedToReturnError) 
-    {
-        PrintWriter errorLog = null;
+    {   
         try {
-            errorLog = new PrintWriter(pathTotestFilesDirectory + "../output/errorlog.txt");
-            
-        for (String file : inputFolder) {
-            String currentMethod = getMethodName(file);
-            String currentPostData =  testManager.convertToStringFromXmlFile(file);
-            
-            if(currentMethod != null){
-
-                URL sslUrl = new URL("https://localhost:8443/RemSig/"+currentMethod);
-
-                HttpsURLConnection con = establishConnection(sslUrl,true);                                    
-                String response = post(con, currentPostData);
-                if (response == null)
-                {
-                    System.out.println("nullResponse " + currentMethod +" "+ file);
-                    errorLog.append("no response on " +currentMethod + "inputDataFromFile"+ file);
+            for (String file : inputFolder) {
+                String currentMethod = getMethodName(file);
+                String currentPostData =  testManager.convertToStringFromXmlFile(file);            
+                if(currentMethod != null){
+                    URL sslUrl = new URL(serverAddress + currentMethod);
+                    HttpsURLConnection con = establishConnection(sslUrl,true);                                    
+                    String response = post(con, currentPostData);
+                    
+                    if (response == null)
+                    {
+                        log.warn("Server did not return any response to request "
+                                +currentMethod +" with data from file: "+ file);                        
+                    }else if(!response.contains("error") && isSupposedToReturnError)
+                    {
+                        log.warn("Server did not return error with incorrect" +
+                                "input data on method: "+ currentMethod+ " with file"
+                                + file + " the response was " + response);                        
+                    }else if (response.contains("error")){
+                        log.warn("Server did not return error with incorrect" +
+                                "input data on method: "+ currentMethod+ " with file"
+                                + file + " the response was " + response);
+                    }                    
+                    else{
+                        log.info("Server response: "+ response);
+                    }
                 }
-                if(!response.contains("error") && isSupposedToReturnError)
-                {
-                    System.out.println("NoError " + currentMethod +" "+ file +" "+ response);
-                    errorLog.append("No error mesage with " +currentMethod + "on inputDataFromFile"+ file);
-                }
+
             }
-            
-        }
         
         } catch (Exception e) {
-            errorLog.append("Error mesage with " +"on inputDataFromFile");
-            System.out.println(e.getMessage());
-        } finally{
-            errorLog.write("MIRO");
-            errorLog.close();
+            log.error("Test cause exception" + e.getMessage());            
         }
-        
     }
     
     
@@ -132,12 +114,12 @@ public class IntegrationTest {
                 String pKeyFile;
                 if (pkcs12Keystore) {
                      keyStore = KeyStore.getInstance("PKCS12");
-                     pKeyPassword = "123456";
-                     pKeyFile = "right.p12";
+                     pKeyFile = p12KeyFile;
+                     pKeyPassword = p12KeyPassword;                     
                 }else{
                      keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-                     pKeyPassword = "123456";
-                     pKeyFile = "/home/miroslav/Documents/toDelete/73/.keystore";
+                     pKeyFile = defaultKeystore;
+                     pKeyPassword = defaultKeystorePass;
                 }
                     
 		
@@ -145,9 +127,9 @@ public class IntegrationTest {
 			keyStore.load(keyInput, pKeyPassword.toCharArray());
 		}
                 
-                KeyStore keyStoreTest = KeyStore.getInstance(KeyStore.getDefaultType());
-		String keyStoreTestPassword = "123456";
-                String keyStoreTestFile = "/home/miroslav/Documents/toDelete/73/client.jks";
+                KeyStore keyStoreTest = KeyStore.getInstance(KeyStore.getDefaultType());		
+                String keyStoreTestFile = trustStore;
+                String keyStoreTestPassword = trustStorePass;
 		try (InputStream keyInput1 = new FileInputStream(keyStoreTestFile)) {
 			keyStoreTest.load(keyInput1, keyStoreTestPassword.toCharArray());
 		}
@@ -158,17 +140,16 @@ public class IntegrationTest {
 		keyManagerFactory.init(keyStore, pKeyPassword.toCharArray());
 
 		SSLContext context = SSLContext.getInstance("TLS");
-		context.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+		context.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(),
+                        new SecureRandom());
                 
 		SSLSocketFactory factory = context.getSocketFactory();
 		
                 HttpsURLConnection ssl_con = (HttpsURLConnection) sslUrl.openConnection();
 
-		ssl_con.setSSLSocketFactory(factory);
-                return ssl_con;
-		//postSpecification(sslUrl, factory, postData);
-	}
-        
+		ssl_con.setSSLSocketFactory(factory);                
+                return ssl_con;		
+	}        
         
         public String post(HttpsURLConnection ssl_con,String postData ) throws IOException
         {
@@ -200,7 +181,7 @@ public class IntegrationTest {
             return response.toString();
         }
         public ArrayList<String> listFilesForFolder(final File folder) {
-            ArrayList<String> allFiles = new ArrayList<String>();
+            ArrayList<String> allFiles = new ArrayList<>();
             
             for (final File fileEntry : folder.listFiles()) {
                 if (fileEntry.isDirectory()) {
@@ -231,7 +212,7 @@ public class IntegrationTest {
     }
     public ArrayList<String> loadAllMethods()
     {
-        ArrayList<String> result = new ArrayList<String>();
+        ArrayList<String> result = new ArrayList<>();
         String generateRequest = "generateRequest";        
         String importCertificate = "importCertificate";
         String importPKCS12 = "importPKCS12";        
@@ -246,6 +227,7 @@ public class IntegrationTest {
         String signPKCS7 = "importCertificate";
         String signPdf = "signPdf";
         String sign = "sign";   
+        
         result.add(generateRequest);
         result.add(importCertificate);
         result.add(importPKCS12);
@@ -257,8 +239,8 @@ public class IntegrationTest {
         result.add(importCertificate);
         result.add(listCertificatesWithStatus);
         result.add(changePassword);
-        result.add(signPKCS7);
         
+        result.add(signPKCS7);        
         result.add(signPdf);
         result.add(sign);
         result.add(stats);

@@ -6,6 +6,7 @@
 package cz.muni.ics.remsig.impl;
 
 import static com.sun.xml.internal.messaging.saaj.util.Base64.base64Decode;
+import cz.muni.ics.remsig.common.IntegrationTest;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_EXPIRED;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_NOT_YET_VALID;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_PASSWORD_RESET;
@@ -38,7 +39,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+//import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Result;
@@ -72,7 +73,8 @@ import org.junit.AfterClass;
 import static org.junit.Assert.assertThat;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Test;import org.slf4j.LoggerFactory;
+import org.junit.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -86,6 +88,8 @@ import org.w3c.dom.ls.LSSerializer;
 import java.io.*;
 import java.security.*;
 import java.security.spec.*;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.dbunit.database.DatabaseConfig;
 import org.dbunit.ext.mysql.MySqlDataTypeFactory;
 
@@ -98,9 +102,10 @@ import org.dbunit.ext.mysql.MySqlDataTypeFactory;
  * @author miroslav
  */
 public class TestManager {
-private CertificateManagerImpl manager;
+    private CertificateManagerImpl manager;
     private Properties configuration;
     public static final String CONFIG_FILE = "/etc/remsig/remsig.properties";
+    public static final String CONFIG_FILE_TEST = "/home/miroslav/Documents/Bakalarka/Remsig/test/testConfig/test.properties";
     private final static org.slf4j.Logger logger
             = LoggerFactory.getLogger(CertificateManagerImplTest.class);
     private IDatabaseTester databaseTester;
@@ -1016,8 +1021,35 @@ private CertificateManagerImpl manager;
         return result;
     }
     
+    public static Logger setUpLogger(Class inputClasss){
+    Logger logger = org.apache.log4j.Logger.getLogger(inputClasss);
+    PropertyConfigurator.configure("/home/miroslav/Documents/Bakalarka/"
+                + "Remsig/test/cz/muni/ics/remsig/impl/log4j.properties");
+                
+        logger.debug("this is a debug log message");
+        return logger;    
+    }
+    /**
+     * 
+     * @return 
+     * @throws RemSigException 
+     */
     
-    
+    /**
+     *
+     * @param configFile
+     * @return
+     */
+    public static Properties prepareConfigFile(String configFile){
+        Properties configuration = new Properties();
+
+        try (FileInputStream input = new FileInputStream(configFile)) {
+                configuration.load(input);
+        } catch (IOException ex)  {
+               return null; 
+        }
+        return configuration;
+    }
     
     
 }
