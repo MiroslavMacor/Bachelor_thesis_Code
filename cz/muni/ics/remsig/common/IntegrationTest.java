@@ -41,13 +41,12 @@ public class IntegrationTest {
     final String defaultKeystore = config.getProperty("pathDefaultKeystore");
     final String defaultKeystorePass = config.getProperty("defaultKeystorePass");
     final String trustStore = config.getProperty("pathToJKSTruststore");
-    final String trustStorePass = config.getProperty("trustoreJksPass");    
+    final String trustStorePass = config.getProperty("trustoreJksPass");        
     
     ArrayList<String> allMethods = loadAllMethods();
     TestManager testManager = new TestManager();
-    Logger log = TestManager.setUpLogger(IntegrationTest.class);        
-    
-    public static void main(String[] args) throws Exception {                
+    Logger log = TestManager.setUpLogger(IntegrationTest.class);
+    public static void main(String[] args) throws Exception {        
         IntegrationTest integrationTest = new IntegrationTest();
         
         integrationTest.executeTest();
@@ -60,13 +59,11 @@ public class IntegrationTest {
         //testing with incorrect input parameters
         ArrayList<String> incorrectInputFiles =  listFilesForFolder(new File(pathTotestFilesDirectory+"incorrectData/"));
         runTest(incorrectInputFiles, true);
-        // testing with correct data
+        
+        // testing with correct data        
         ArrayList<String> correctData =  listFilesForFolder(new File(pathTotestFilesDirectory+"correctData/"));        
-        runTest(nullFiles, false);
-        
-        
+        runTest(correctData, false);
     }
-    
     public void runTest(ArrayList<String> inputFolder, boolean isSupposedToReturnError) 
     {   
         try {
@@ -75,143 +72,120 @@ public class IntegrationTest {
                 String currentPostData =  testManager.convertToStringFromXmlFile(file);            
                 if(currentMethod != null){
                     URL sslUrl = new URL(serverAddress + currentMethod);
-                    HttpsURLConnection con = establishConnection(sslUrl,true);                                    
+                    HttpsURLConnection con = establishConnection(sslUrl,false);
                     String response = post(con, currentPostData);
                     
-                    if (response == null)
+                    if (response == null || response.equals(""))
                     {
-                        log.warn("Server did not return any response to request "
+                        log.warn("FAIL Server did not return any response to request "
                                 +currentMethod +" with data from file: "+ file);                        
-                    }else if(!response.contains("error") && isSupposedToReturnError)
+                    }else if(!response.toLowerCase().contains("error") && isSupposedToReturnError)
                     {
-                        log.warn("Server did not return error with incorrect" +
+                        log.warn("FAIL Server did not return error with incorrect" +
                                 "input data on method: "+ currentMethod+ " with file"
                                 + file + " the response was " + response);                        
-                    }else if (response.contains("error")){
-                        log.warn("Server did not return error with incorrect" +
+                    }else if (response.contains("error") && !isSupposedToReturnError){
+                        log.warn("FAIL Server did return error with correct" +
                                 "input data on method: "+ currentMethod+ " with file"
                                 + file + " the response was " + response);
                     }                    
                     else{
-                        log.info("Server response: "+ response);
+                        log.info("Server response: "+ currentMethod + " "+ response);
                     }
                 }
 
-            }
-        
+            }        
         } catch (Exception e) {
             log.error("Test cause exception" + e.getMessage());            
         }
-    }
+    }    
     
-    
-     public HttpsURLConnection establishConnection(URL sslUrl, boolean pkcs12Keystore) throws Exception {
-                
-		
-		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-                KeyStore keyStore;
-                String pKeyPassword;
-                String pKeyFile;
-                if (pkcs12Keystore) {
-                     keyStore = KeyStore.getInstance("PKCS12");
-                     pKeyFile = p12KeyFile;
-                     pKeyPassword = p12KeyPassword;                     
-                }else{
-                     keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-                     pKeyFile = defaultKeystore;
-                     pKeyPassword = defaultKeystorePass;
-                }
-                    
-		
-		try (InputStream keyInput = new FileInputStream(pKeyFile)) {
-			keyStore.load(keyInput, pKeyPassword.toCharArray());
-		}
-                
-                KeyStore keyStoreTest = KeyStore.getInstance(KeyStore.getDefaultType());		
-                String keyStoreTestFile = trustStore;
-                String keyStoreTestPassword = trustStorePass;
-		try (InputStream keyInput1 = new FileInputStream(keyStoreTestFile)) {
-			keyStoreTest.load(keyInput1, keyStoreTestPassword.toCharArray());
-		}
-                
-                TrustManagerFactory tmf = 
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                tmf.init(keyStoreTest);
-		keyManagerFactory.init(keyStore, pKeyPassword.toCharArray());
-
-		SSLContext context = SSLContext.getInstance("TLS");
-		context.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(),
-                        new SecureRandom());
-                
-		SSLSocketFactory factory = context.getSocketFactory();
-		
-                HttpsURLConnection ssl_con = (HttpsURLConnection) sslUrl.openConnection();
-
-		ssl_con.setSSLSocketFactory(factory);                
-                return ssl_con;		
-	}        
-        
-        public String post(HttpsURLConnection ssl_con,String postData ) throws IOException
-        {
-                
-		ssl_con.setRequestMethod("POST");
-
-		ssl_con.setDoOutput(
-				true);
-
-		try (DataOutputStream wr = new DataOutputStream(ssl_con.getOutputStream())) {			
-                        wr.writeBytes(postData);
-		}
-		int responseCode = ssl_con.getResponseCode();
-
-		//System.out.println(				"\nSending 'POST' request to URL : " + sslUrl);		
-		//System.out.println("Response Code : " + responseCode);
-
-		StringBuilder response = new StringBuilder();
-		try (BufferedReader in = new BufferedReader(
-				new InputStreamReader(ssl_con.getInputStream()))) {
-			String inputLine;
-                        
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-		}
-		System.out.println(response.toString());
-            
-            return response.toString();
+    public HttpsURLConnection establishConnection(URL sslUrl, boolean pkcs12Keystore) throws Exception {                		
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+        KeyStore keyStore;
+        String pKeyPassword;
+        String pKeyFile;
+        if (pkcs12Keystore) {
+             keyStore = KeyStore.getInstance("PKCS12");
+             pKeyFile = p12KeyFile;
+             pKeyPassword = p12KeyPassword;                     
+        }else{
+             keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+             pKeyFile = defaultKeystore;
+             pKeyPassword = defaultKeystorePass;
         }
-        public ArrayList<String> listFilesForFolder(final File folder) {
-            ArrayList<String> allFiles = new ArrayList<>();
-            
-            for (final File fileEntry : folder.listFiles()) {
-                if (fileEntry.isDirectory()) {
-                    listFilesForFolder(fileEntry);
-                } else {
-                    if (!fileEntry.getAbsoluteFile().toString().endsWith("~")) {
-                        allFiles.add(fileEntry.getAbsolutePath());
-                        //System.out.println(fileEntry.getAbsoluteFile());
-                        
-                    }
-                    
+
+        try (InputStream keyInput = new FileInputStream(pKeyFile)) {
+                keyStore.load(keyInput, pKeyPassword.toCharArray());
+        }
+
+        KeyStore keyStoreTest = KeyStore.getInstance(KeyStore.getDefaultType());		
+        String keyStoreTestFile = trustStore;
+        String keyStoreTestPassword = trustStorePass;
+        try (InputStream keyInput1 = new FileInputStream(keyStoreTestFile)) {
+                keyStoreTest.load(keyInput1, keyStoreTestPassword.toCharArray());
+        }
+
+        TrustManagerFactory tmf = 
+        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStoreTest);
+        keyManagerFactory.init(keyStore, pKeyPassword.toCharArray());
+
+        SSLContext context = SSLContext.getInstance("TLS");
+        context.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(),
+                new SecureRandom());
+
+        SSLSocketFactory factory = context.getSocketFactory();
+        HttpsURLConnection ssl_con = (HttpsURLConnection) sslUrl.openConnection();
+        ssl_con.setSSLSocketFactory(factory);                
+        return ssl_con;		
+    }        
+        
+    public String post(HttpsURLConnection ssl_con,String postData ) throws IOException
+    {                
+        ssl_con.setRequestMethod("POST");
+        ssl_con.setDoOutput(
+                        true);
+
+        try (DataOutputStream wr = new DataOutputStream(ssl_con.getOutputStream())) {			
+                wr.writeBytes(postData);
+        }		
+        StringBuilder response = new StringBuilder();
+        try (BufferedReader in = new BufferedReader(
+                        new InputStreamReader(ssl_con.getInputStream()))) {
+                String inputLine;
+
+                while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
                 }
+        }
+        return response.toString();
     }
-    return allFiles;
-}
+    public ArrayList<String> listFilesForFolder(final File folder) {
+        ArrayList<String> allFiles = new ArrayList<>();
+
+        for (final File fileEntry : folder.listFiles()) {
+            if (fileEntry.isDirectory()) {
+                listFilesForFolder(fileEntry);
+            } else {
+                if (!fileEntry.getAbsoluteFile().toString().endsWith("~")) {
+                    allFiles.add(fileEntry.getAbsolutePath());
+                }
+            }
+        }
+        return allFiles;
+    }
         
     public String getMethodName(String input)
-    {
-        
+    {   
         for (String method : allMethods) {
             if (input.toLowerCase().contains(method.toLowerCase())) {
                 return method;
-                
             }
-            
         }
-     return null;   
+        return null;   
     }
-    public ArrayList<String> loadAllMethods()
-    {
+    public ArrayList<String> loadAllMethods(){
         ArrayList<String> result = new ArrayList<>();
         String generateRequest = "generateRequest";        
         String importCertificate = "importCertificate";
@@ -247,8 +221,19 @@ public class IntegrationTest {
         result.add(sign);
         
         return result;
-        
     }
-
-    
+    static {
+        //for localhost testing only
+        javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
+            new javax.net.ssl.HostnameVerifier() {
+                    @Override
+                    public boolean verify(String hostname,
+                                    javax.net.ssl.SSLSession sslSession) {
+                            if (hostname.equals("localhost")) {
+                                    return true;
+                            }
+                            return false;
+                    }
+            });
+    }
 }

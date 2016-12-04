@@ -1023,10 +1023,8 @@ public class TestManager {
     
     public static Logger setUpLogger(Class inputClasss){
     Logger logger = org.apache.log4j.Logger.getLogger(inputClasss);
-    PropertyConfigurator.configure("/home/miroslav/Documents/Bakalarka/"
-                + "Remsig/test/cz/muni/ics/remsig/impl/log4j.properties");
-                
-        logger.debug("this is a debug log message");
+    PropertyConfigurator.configure("/home/miroslav/Documents/Bakalarka/Remsig/"
+            + "test/testConfig/log4j.properties");
         return logger;    
     }
     /**
