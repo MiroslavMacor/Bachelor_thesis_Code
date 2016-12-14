@@ -191,7 +191,7 @@ public class TestManager {
                     "Error while loading configuration properties",
                     ex, ErrorCode.ERROR259EN);
         }
-        databaseTester = new JdbcDatabaseTester("com.mysql.jdbc.Driver", "jdbc:mysql://localhost:3306/Remsig?zeroDateTimeBehavior=convertToNull", "root", "");
+        databaseTester = new JdbcDatabaseTester("com.mysql.jdbc.Driver", "jdbc:mysql://localhost:3306/Remsig?zeroDateTimeBehavior=convertToNull", "remsig", "");
         IDataSet dataSet = new FlatXmlDataSetBuilder().setColumnSensing(true).build(new FileInputStream(initXmlDoc));
         
         databaseTester.setTearDownOperation(DatabaseOperation.DELETE_ALL);
