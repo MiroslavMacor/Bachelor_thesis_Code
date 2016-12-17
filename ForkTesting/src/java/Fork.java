@@ -22,6 +22,7 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.logging.Level;
 import javax.net.ssl.HttpsURLConnection;
@@ -77,11 +78,26 @@ public class Fork extends HttpServlet {
 	public static final String LIST_ALL_CERTS_STATUS = "/listAllCertificatesWithStatus";
 	public static final String CHANGE_CERT_STATUS = "/changeCertificateStatus";
 	public static final String CHANGE_PASSWORD = "/changePassword";
-	public static final String UPLOAD_PRIVATE_KEY = "/uploadPrivateKey";
-    
+	public static final String UPLOAD_PRIVATE_KEY = "/uploadPrivateKey";    
            
         X509Certificate clientCert;
-        String outputDirectory = "/home/miroslav/Documents/toDelete/82/";
+        
+        Properties config = prepareConfigFile("/home/miroslav/Documents/Bakalarka/Remsig/test/testConfig/test.properties");
+        
+        
+        String outputDirectory = config.getProperty("forkOutputDirectory");
+        
+        final String serverAddress = config.getProperty("serverAddress");
+        final String serverAddressJava = config.getProperty("serverAddressJava");
+        final String p12KeyFile = config.getProperty("pathToP12Keystore");
+        final String p12KeyPassword = config.getProperty("p12Pass");
+        final String defaultKeystore = config.getProperty("pathDefaultKeystore");
+        final String defaultKeystorePass = config.getProperty("defaultKeystorePass");
+        final String trustStore = config.getProperty("pathToJKSTruststore");
+        final String trustStorePass = config.getProperty("trustoreJksPass");
+        final String exportFilesDirectory = config.getProperty("exportFilesDirectory");
+        
+        
         
         static {
 	    //for localhost testing only
@@ -102,13 +118,10 @@ public class Fork extends HttpServlet {
     @Override
     protected void  doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException  {
         response.getOutputStream().write("HELLO".getBytes());
-        
-        
     }
     
- @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {        
         String uniqueID = UUID.randomUUID().toString();
        	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss-");
 	Date date = new Date();        
@@ -127,10 +140,9 @@ public class Fork extends HttpServlet {
         
         String urlPath = request.getRequestURI();
         //String urlPath = request.getServletPath()
-        request.getRequestURI();
-        
+        request.getRequestURI();        
         String methodFromUrl = urlPath.substring(urlPath.lastIndexOf("/")+1,urlPath.length());
-                
+        
         StringBuilder buffer = new StringBuilder();
         BufferedReader reader = request.getReader();
         String line;
@@ -147,47 +159,41 @@ public class Fork extends HttpServlet {
        
         try {
              // sending data to first server and getting response
-            URL sslUrl = new URL("https://localhost:8443/RemSig/"+methodFromUrl); // PHP server
+            URL sslUrl = new URL(serverAddress + methodFromUrl); // PHP server
             
             //get url and parse it end            
             String responsePHP = sendPost(methodFromUrl, data, sslUrl);
-            
-            
             try{
-                
-                    PrintWriter originalPost = new PrintWriter(outputDirectory + "input/" + fileName);
-                    originalPost.println(data);
-                    originalPost.close();
-                    PrintWriter originalResponce = new PrintWriter(outputDirectory +"/outputPHP/" + fileName);
-                    originalResponce.println(responsePHP);
-                    originalResponce.close();
-                    URL sslUrlJava = new URL("https://localhost:8443/RemSigJava/"); // Javaserver
-                    //URL sslUrlJava = new URL("https://localhost:8443/RemSig/"+methodFromUrl); // Javaserver
-                    //String responseJava = sendPost(methodFromUrl, data, sslUrlJava);
-                    
-                    PrintWriter responseJavaO = new PrintWriter(outputDirectory +"/outputJava/" + fileName);
-                    //responseJavaO.println(responseJava);
-                    responseJavaO.close();                    
-                    
-                    out.write(responsePHP);
+                PrintWriter originalPost = new PrintWriter(outputDirectory + "input/" + fileName);
+                originalPost.println(data);
+                originalPost.close();
+                PrintWriter originalResponce = new PrintWriter(outputDirectory +"/outputPHP/" + fileName);
+                originalResponce.println(responsePHP);
+                originalResponce.close();
+                URL sslUrlJava = new URL(serverAddressJava); // Javaserver
+                //URL sslUrlJava = new URL("https://localhost:8443/RemSig/"+methodFromUrl); // Javaserver
+                //String responseJava = sendPost(methodFromUrl, data, sslUrlJava);
+                PrintWriter responseJavaO = new PrintWriter(outputDirectory +"/outputJava/" + fileName);
+                //responseJavaO.println(responseJava);
+                responseJavaO.close();                    
+                out.write(responsePHP);
             }
             catch(FileNotFoundException e)
             {
                 //Logger System.out.println(e.getMessage());
               //  java.util.logging.Logger.getLogger(NewServlet.class.getName()).log(Level.SEVERE, null, e);
                 PrintWriter toDeleteA = new PrintWriter(outputDirectory + "error/file" + fileName);
-                    toDeleteA.println(e + System.lineSeparator() + e.getMessage());
-                    toDeleteA.close();
-        
+                toDeleteA.println(e + System.lineSeparator() + e.getMessage());
+                toDeleteA.close();
             }
             
         } catch (Exception ex) {
             //java.util.logging.Logger.getLogger(Spliter.class.getName()).log(Level.SEVERE, null, ex);
             //java.util.logging.Logger.getLogger(NewServlet.class.getName()).log(Level.SEVERE, null, ex);
             
-                    PrintWriter toDeleteB = new PrintWriter(outputDirectory + "error/all" + fileName);
-                    toDeleteB.println(ex.getMessage()+ ex.toString());
-                    toDeleteB.close();
+            PrintWriter toDeleteB = new PrintWriter(outputDirectory + "error/all" + fileName);
+            toDeleteB.println(ex.getMessage()+ ex.toString());
+            toDeleteB.close();
         }
     }
     
@@ -195,42 +201,35 @@ public class Fork extends HttpServlet {
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
         //KeyStore keyStore = KeyStore.getInstance("PKCS12");
         KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-
-        String pKeyPassword = "123456";
+        String pKeyPassword = defaultKeystorePass;
         //String pKeyFile = "sub1-cert.p12";
         //String pKeyFile = "/home/miroslav/Documents/Bakalarka/right.p12";
-        String pKeyFile = "/home/miroslav/Documents/toDelete/73/.keystore";
+        String pKeyFile = defaultKeystore;
         try (InputStream keyInput = new FileInputStream(pKeyFile)) {
                 keyStore.load(keyInput, pKeyPassword.toCharArray());
         }
-
         keyStore.setCertificateEntry("client", clientCert);
-
         KeyStore keyStoreTest = KeyStore.getInstance(KeyStore.getDefaultType());
-        String keyStoreTestPassword = "123456";
-        String keyStoreTestFile = "/home/miroslav/Documents/toDelete/73/client.jks";
+        String keyStoreTestPassword = trustStorePass;
+        String keyStoreTestFile = trustStore;
         try (InputStream keyInput1 = new FileInputStream(keyStoreTestFile)) {
                 keyStoreTest.load(keyInput1, keyStoreTestPassword.toCharArray());
         }
-
         TrustManagerFactory tmf = 
         TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(keyStoreTest);
         keyManagerFactory.init(keyStore, pKeyPassword.toCharArray());
-
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
 
         SSLSocketFactory factory = context.getSocketFactory();
-
         return postSpecification(url, factory, postData);
     }
         
         
-    public String postSpecification(URL sslUrl,SSLSocketFactory factory,String postData ) throws IOException
-    {
+    public String postSpecification(URL sslUrl,SSLSocketFactory factory,String postData )
+            throws IOException{
         HttpsURLConnection ssl_con = (HttpsURLConnection) sslUrl.openConnection();
-
         ssl_con.setSSLSocketFactory(factory);
         ssl_con.setRequestMethod("POST");
 
@@ -256,26 +255,19 @@ public class Fork extends HttpServlet {
         }
         System.out.println(response.toString());
         return response.toString();
-
     }
         
-        public boolean filesCheck(String firstFileName, String secondFileName)
-        {
-            // if there is need for more precise chceck TestManager can get attributes from xml
-            //load files
-            String first = loadFile(firstFileName);
-            String second = loadFile(secondFileName);
-            int hashFirst = first.hashCode();
-            int hashSecond = second.hashCode();
-            
-            return (hashFirst == hashSecond);
-        }
+    public boolean filesCheck(String firstFileName, String secondFileName){
+        // if there is need for more precise chceck TestManager can get attributes from xml
+        //load files
+        String first = loadFile(firstFileName);
+        String second = loadFile(secondFileName);
+        int hashFirst = first.hashCode();
+        int hashSecond = second.hashCode();            
+        return (hashFirst == hashSecond);
+    }
         
-        public int hashFile()
-        {
-         return 2;    
-        }
-        /**
+    /**
      * Takes filePath and returns its content as string read through bytes 
      * @param filePath path to file
      * @return Content of file
@@ -292,7 +284,14 @@ public class Fork extends HttpServlet {
         }
         return encodedString;        
     }
-        
-    
+    public static Properties prepareConfigFile(String configFile){
+        Properties configuration = new Properties();
 
+        try (FileInputStream input = new FileInputStream(configFile)) {
+                configuration.load(input);
+        } catch (IOException ex)  {
+               return null; 
+        }
+        return configuration;
+    }
 }

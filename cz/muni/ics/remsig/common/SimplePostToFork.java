@@ -34,15 +34,7 @@ public class SimplePostToFork {
         TestManager testManager = new TestManager();
 
         simplePost.sendPost("generateRequest", http.generateRequest);
-        
-        
-        
-        
-        
     }
-
-	
-
     static {
             //for localhost testing only
             javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
