@@ -88,6 +88,7 @@ import org.w3c.dom.ls.LSSerializer;
 import java.io.*;
 import java.security.*;
 import java.security.spec.*;
+import java.sql.Statement;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.dbunit.database.DatabaseConfig;
@@ -112,6 +113,7 @@ public class TestManager {
     private IDatabaseConnection dbUnitConnection;
     private Connection connection;
     private java.sql.Statement statement;
+    Properties config = TestManager.prepareConfigFile(TestManager.CONFIG_FILE_TEST);
 
     org.w3c.dom.Document testDocument1 = null;
     org.w3c.dom.Document testDocument2 = null;
@@ -148,32 +150,32 @@ public class TestManager {
     
     int andersonCerId = 0;
     int bobaFetCerId = 0 ;
-    int cyrilCerId = 0 ;
-    
+    int cyrilCerId = 0 ;    
 
-    private String initXmlDoc = "/test/testFiles/NewInitDatabase.xml"; // dataset
+    private String initXmlDoc =  config.getProperty("initialDatabaseInXml"); // dataset
     
     private ITable expectedTable = null;
     
-    public void databaseInit()   {
+    public Statement databaseInit(){        
         try {
             databaseTester = new JdbcDatabaseTester("com.mysql.jdbc.Driver", "jdbc:mysql://localhost:3306/Remsig?zeroDateTimeBehavior=convertToNull", "root", "");        
-        IDataSet dataSet = new FlatXmlDataSetBuilder().setColumnSensing(true).build(new FileInputStream(initXmlDoc));
-        
-        databaseTester.setTearDownOperation(DatabaseOperation.DELETE_ALL);
-        databaseTester.setDataSet(dataSet);
-        
-        databaseTester.setSetUpOperation(DatabaseOperation.REFRESH);
-        databaseTester.onSetup();
-        dbUnitConnection = databaseTester.getConnection();
-        connection = dbUnitConnection.getConnection();
+            IDataSet dataSet = new FlatXmlDataSetBuilder().setColumnSensing(true).
+                    build(new FileInputStream(initXmlDoc));
 
-       statement = connection.createStatement();
-        expectedTable = dataSet.getTable("credentials");
+            databaseTester.setTearDownOperation(DatabaseOperation.DELETE_ALL);
+            databaseTester.setDataSet(dataSet);
+
+            databaseTester.setSetUpOperation(DatabaseOperation.REFRESH);
+            databaseTester.onSetup();
+            dbUnitConnection = databaseTester.getConnection();
+            connection = dbUnitConnection.getConnection();
+
+            statement = connection.createStatement();
+            expectedTable = dataSet.getTable("credentials");
         } catch (Exception e) {
+            System.out.println(" Error " + e.getMessage());
         }
-        
-    
+        return statement;
 }
     
     @Before
@@ -251,7 +253,7 @@ public class TestManager {
      */
     public ArrayList<String> extractMultipleCollumsFromDatabase(String[] dataToBeExtracted,String databaseName,String rule)
     {
-        databaseInit();
+        statement = databaseInit();
         ArrayList<String> result = new ArrayList<String>();
         String temp = null;
         for (String  rowName : dataToBeExtracted ) {
@@ -283,7 +285,7 @@ public class TestManager {
      */
     public String extractOneCollumFromDatabase(String dataToBeExported, String databaseName,String rule)
     {
-        databaseInit();
+        statement = databaseInit();
         String result = null;
         try {
             ResultSet r = statement.executeQuery("SELECT " +dataToBeExported+""

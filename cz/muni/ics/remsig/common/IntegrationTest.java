@@ -12,7 +12,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.URL;
 import java.security.KeyStore;
 import java.security.SecureRandom;
@@ -23,9 +22,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
 /**
  *
  * @author miroslav
@@ -48,6 +45,7 @@ public class IntegrationTest {
     Logger log = TestManager.setUpLogger(IntegrationTest.class);
     public static void main(String[] args) throws Exception {        
         IntegrationTest integrationTest = new IntegrationTest();
+        TestManager testManagera = new TestManager();
         
         integrationTest.executeTest();
     }

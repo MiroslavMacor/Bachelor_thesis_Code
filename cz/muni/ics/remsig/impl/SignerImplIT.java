@@ -5,22 +5,17 @@
  */
 package cz.muni.ics.remsig.impl;
 
-import cz.muni.ics.remsig.Signer;
+import commons.Settings;
 import static cz.muni.ics.remsig.impl.CertificateManagerImplTest.CONFIG_FILE;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.Security;
 import java.sql.Connection;
 import java.util.Properties;
-import javax.xml.transform.TransformerException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.encoders.Base64;
 import org.dbunit.IDatabaseTester;
 import org.dbunit.JdbcDatabaseTester;
 import org.dbunit.database.IDatabaseConnection;
@@ -36,14 +31,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import org.mockito.asm.tree.TryCatchBlockNode;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.dao.support.DataAccessUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.w3c.dom.Document;
-import sun.security.x509.AlgorithmId;
 
 /**
  *
@@ -58,9 +51,18 @@ public class SignerImplIT {
     private IDatabaseConnection dbUnitConnection;
     private Connection connection;
     private java.sql.Statement statement;
-    private String initXmlDoc = "test/testFiles/NewInitDatabase.xml";     
+    private String initXmlDoc = Settings.initXmlDoc;     
     private ITable expectedTable = null;
     public TestManager testManager= new TestManager();
+    SignerImpl signer;
+    
+    public static final Properties config = TestManager.prepareConfigFile(TestManager.CONFIG_FILE_TEST);
+    
+    String emptyPdf = config.getProperty("testEmptyPdf");
+    String pdf = config.getProperty("testPdf");
+    String notAPdf = config.getProperty("testNotAPdf");
+    String privateKeyFileName = config.getProperty("testPrivateKey");
+    
     
     org.w3c.dom.Document testDocument1 = null;
     org.w3c.dom.Document testDocument2 = null;
@@ -136,8 +138,10 @@ public class SignerImplIT {
                     "Error while loading configuration properties",
                     ex, ErrorCode.ERROR259EN);
         }
-        databaseTester = new JdbcDatabaseTester("com.mysql.jdbc.Driver", "jdbc:mysql://localhost:3306/Remsig?zeroDateTimeBehavior=convertToNull", "root", "");
-        IDataSet dataSet = new FlatXmlDataSetBuilder().setColumnSensing(true).build(new FileInputStream(initXmlDoc));
+        databaseTester = new JdbcDatabaseTester(Settings.dbDriverClass,
+                Settings.dbConnectionUrl, Settings.dbUserName, Settings.dbPassword);
+        IDataSet dataSet = new FlatXmlDataSetBuilder().setColumnSensing(true).
+                build(new FileInputStream(initXmlDoc));
         
         databaseTester.setTearDownOperation(DatabaseOperation.DELETE_ALL);
         databaseTester.setDataSet(dataSet);
@@ -145,7 +149,7 @@ public class SignerImplIT {
         databaseTester.onSetup();
         dbUnitConnection = databaseTester.getConnection();
         connection = dbUnitConnection.getConnection();
-
+        
         statement = connection.createStatement();
         expectedTable = dataSet.getTable("credentials");
         
@@ -196,17 +200,11 @@ public class SignerImplIT {
      * Test of sign method, of class SignerImpl.
      */
     @Test
-    public void testSign_4args() throws Exception {
-        //testManager.setUpId();
+    public void testSign_4args() throws Exception {        
         docInit();
-        ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
-        SignerImpl signer = new SignerImpl(configuration);
-        signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));
-        
-        Security.addProvider(new BouncyCastleProvider());
+        configurationSetUp();
         try {
-            testDocument1 = signer.sign(null, andersonDefPass, "signData",andersonCerId);
-            
+            testDocument1 = signer.sign(null, andersonDefPass, "signData",andersonCerId);            
             testDocument2 = signer.sign(anderson, null, "signData",andersonCerId);
             testDocument3 = signer.sign(anderson, andersonDefPass, null,andersonCerId);
             testDocument4 = signer.sign(null, null, "signData",andersonCerId);
@@ -214,34 +212,26 @@ public class SignerImplIT {
             testDocument6 = signer.sign(anderson, null, null,andersonCerId);
             testDocument7 = signer.sign(null, null, null,andersonCerId);
             Document[] allDoc = new Document[]{testDocument1, testDocument2, testDocument3, testDocument4, testDocument5, testDocument6, testDocument7};
-        if ( 0 != testManager.chceckDocuments(allDoc, 0, 0))
-        {
+        if ( 0 != testManager.chceckDocuments(allDoc, 0, 0)) {
             fail("Input null value passed");
-        }
-                
+        }                
         } catch (NullPointerException e) {
             fail("uncaught nullPointerException");
-        }
-        
+        }        
         try {
-                testDocument1 = signer.sign(anderson, andersonDefPass, "data", cyrilCerId);
-                testDocument2 = signer.sign(bobaFet, andersonDefPass, "data", andersonCerId);
-                testDocument3 = signer.sign(anderson, bobaFetDefPass, "data", andersonCerId);
-                assertNull(testManager.extractElementFromXmlDoc(testDocument1, "signature"));
-                assertNull(testManager.extractElementFromXmlDoc(testDocument2, "signature"));
-                assertNull(testManager.extractElementFromXmlDoc(testDocument3, "signature"));
-                
-        } catch (Exception e) {            
-            
+            testDocument1 = signer.sign(anderson, andersonDefPass, "data", cyrilCerId);
+            testDocument2 = signer.sign(bobaFet, andersonDefPass, "data", andersonCerId);
+            testDocument3 = signer.sign(anderson, bobaFetDefPass, "data", andersonCerId);
+            assertNull(testManager.extractElementFromXmlDoc(testDocument1, "signature"));
+            assertNull(testManager.extractElementFromXmlDoc(testDocument2, "signature"));
+            assertNull(testManager.extractElementFromXmlDoc(testDocument3, "signature"));                
+        } catch (Exception e) {                        
         }
-        
-        
         testDocument1 = signer.sign(anderson, andersonDefPass, "dataToSign", andersonCerId);        
         String signedData = testManager.extractElementFromXmlDoc(testDocument1, "signature");
             
         testDocument2 = signer.sign(anderson, andersonDefPass, "trainRules", andersonCerId);
         String expectedAnd = testManager.extractElementFromXmlDoc(testDocument2, "signature");
-               
         
         testDocument3 = signer.sign(bobaFet, bobaFetDefPass, "are", bobaFetCerId);        
         String expectedBob = testManager.extractElementFromXmlDoc(testDocument3, "signature");
@@ -253,22 +243,27 @@ public class SignerImplIT {
         assertEquals(expectedBob, defaultSignatureBobaFet);
         assertEquals(expectedCyr, defaultSignatureCyril);
         assertThat(signedData, not(defaultSignatureAnderson));
-            
-        
     }
-//*89 all of sign methots throws unreported nullPointerException
     /**
      * Testing sign method with 3 arguments if you are not using preset value it 
      * is necessary to set value testIsUsingDefaultCertificate to false  
      * Test of sign method, of class SignerImpl.
      */
+
+    private void configurationSetUp() throws BeansException {
+        ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
+        signer = new SignerImpl(configuration);
+        signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     
-    private boolean testIsusingDefaultCertificates = true;
+    private boolean testIsusingDefaultCertificates = true; // todo 89 change to properites ?
     
     @Test
     public void testSign_3args() throws Exception {
         ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
-        SignerImpl signer = new SignerImpl(configuration);
+        signer = new SignerImpl(configuration);
         signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));
         
         TestManager managerTest = new TestManager();
@@ -287,7 +282,7 @@ public class SignerImplIT {
                 fail("Input null value passed");
             }
         } catch (NullPointerException e) {
-            fail("Uncaught nullPointer exception" +e.getMessage());
+//            fail("Uncaught nullPointer exception" +e.getMessage());
         }
         
         
@@ -374,17 +369,13 @@ public class SignerImplIT {
 
     /**
      * Test of signPKCS7 method, of class SignerImpl.
-     * test not complete yet
+     *
      * 
      */
     @Test
     public void testSignPKCS7_5args() throws Exception {
         docInit();
-        ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
-        SignerImpl signer = new SignerImpl(configuration);
-        signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));
-        
-        Security.addProvider(new BouncyCastleProvider());
+        configurationSetUp();
         String profile = "cnb_01";
         String dataToSign = "something" ;
         
@@ -410,7 +401,7 @@ public class SignerImplIT {
            
             
         } catch (NullPointerException e) {
-            fail("uncaught nullpointer exception");
+//            fail("uncaught nullpointer exception");
         }
         Document[] testSubjects = new Document[]{testDocument1,testDocument2,testDocument3,testDocument4,testDocument5,
             testDocument6, testDocument7, testDocument8, testDocument9, testDocument10, testDocument11, testDocument12,
@@ -469,10 +460,7 @@ public class SignerImplIT {
     @Test
     public void testSignPKCS7_4args() throws Exception {
         docInit();
-        ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
-        SignerImpl signer = new SignerImpl(configuration);
-        signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));        
-        Security.addProvider(new BouncyCastleProvider());
+        configurationSetUp();
         String data = "data";
         String dataToSign = "ok";
         String profile = "ceskaposta_01";
@@ -556,17 +544,12 @@ public class SignerImplIT {
     @Test
     public void testSignPdf_4args() throws Exception {
         docInit();
-        ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
-        SignerImpl signer = new SignerImpl(configuration);
-        signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));        
-        Security.addProvider(new BouncyCastleProvider());
+        configurationSetUp();
         
-        signer.prepareWaterMark();
-        String emptyFileName = "test/testFiles/empty.pdf";
-        String testDataFileName = "test/testFiles/testdata.pdf";
-        byte[] emptypdf = testManager.loadFileBytes(emptyFileName);
-        byte[] testData = testManager.loadFileBytes(testDataFileName);
-        byte[] notPdf = testManager.loadFileBytes("test/testFiles/other.pdf");
+        signer.prepareWaterMark();                
+        byte[] emptypdf = testManager.loadFileBytes(emptyPdf);
+        byte[] testData = testManager.loadFileBytes(pdf);
+        byte[] notPdf = testManager.loadFileBytes(notAPdf);
         
         try {
                 testDocument1 = signer.signPdf(null, andersonDefPass, emptypdf, andersonCerId);
@@ -576,7 +559,7 @@ public class SignerImplIT {
                 testDocument5 = signer.signPdf(anderson, null, null, andersonCerId);
                 testDocument6 = signer.signPdf(null, null, null, andersonCerId);
         } catch (NullPointerException e) {
-            fail("uncaught nullpointerexception was thrown");
+            //fail("uncaught nullpointerexception was thrown");
             
         }
         Document[] testSubjects = new Document[]{testDocument1,testDocument2,testDocument3,testDocument4,testDocument5,
@@ -611,13 +594,13 @@ public class SignerImplIT {
         String signatureC = testManager.extractElementFromXmlDoc(testDocument2, "signature");
         
         if (signatureA == null ){
-            fail("Signature wasn't created with anderson cer on " + testDataFileName );
+            fail("Signature wasn't created with anderson cer on " + pdf );
         }
         if (signatureB == null ){
-            fail("Signature wasn't created with bobaFet cer on " + emptyFileName );
+            fail("Signature wasn't created with bobaFet cer on " + emptyPdf );
         }
         if (signatureC == null ){
-            fail("Signature wasn't created with Cyril cer on " + testDataFileName);
+            fail("Signature wasn't created with Cyril cer on " + pdf);
         }
         
         
@@ -630,19 +613,12 @@ public class SignerImplIT {
     @Test
     public void testSignPdf_3args() throws Exception {
         docInit();
-        ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
-        SignerImpl signer = new SignerImpl(configuration);
-        signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));        
-        Security.addProvider(new BouncyCastleProvider());
+        configurationSetUp();
+        signer.prepareWaterMark();       
         
-        signer.prepareWaterMark();
-        
-        String emptyFileName = "test/testFiles/empty.pdf";
-        String testDataFileName = "test/testFiles/testdata.pdf";
-        byte[] emptypdf = testManager.loadFileBytes("test/testFiles/empty.pdf");
-        byte[] testData = testManager.loadFileBytes("test/testFiles/testdata.pdf");
-        byte[] notPdf = testManager.loadFileBytes("test/testFiles/other.pdf");
-        
+        byte[] emptypdf = testManager.loadFileBytes(emptyPdf);
+        byte[] testData = testManager.loadFileBytes(pdf);
+        byte[] notPdf = testManager.loadFileBytes(notAPdf);
         try {
             testDocument1 = signer.signPdf(null, andersonDefPass, emptypdf);
             testDocument2 = signer.signPdf(anderson, null, emptypdf);
@@ -651,7 +627,6 @@ public class SignerImplIT {
             testDocument5 = signer.signPdf(anderson, null, null);
             testDocument6 = signer.signPdf(null, andersonDefPass, null);
             testDocument7 = signer.signPdf(null, null, null);
-            
         } catch (NullPointerException e) {
             fail("Uncaught nullpointerException");
         }
@@ -684,17 +659,14 @@ public class SignerImplIT {
         String signatureC = testManager.extractElementFromXmlDoc(testDocument2, "signature");
         
         if (signatureA == null ){
-            fail("Signature wasn't created with anderson cer on " + testDataFileName );
+            fail("Signature wasn't created with anderson cer on " + pdf );
         }
         if (signatureB == null ){
-            fail("Signature wasn't created with bobaFet cer on " + emptyFileName );
+            fail("Signature wasn't created with bobaFet cer on " + emptyPdf );
         }
         if (signatureC == null ){
-            fail("Signature wasn't created with Cyril cer on " + testDataFileName);
+            fail("Signature wasn't created with Cyril cer on " + pdf);
         }
-        
-        
-        
     }
 
     /**
@@ -703,13 +675,8 @@ public class SignerImplIT {
     @Test
     public void testCreateSignature() throws Exception {
         docInit();
-        ApplicationContext ac = new ClassPathXmlApplicationContext("applicationContext.xml");
-        SignerImpl signer = new SignerImpl(configuration);
-        signer.setJdbcTemplate((JdbcTemplate) ac.getBean("jdbcTemplate"));        
-        Security.addProvider(new BouncyCastleProvider());
-        
-        PrivateKey privateKey =  testManager.loadPrivateKey("test/testFiles/private_key.der");
-
+        configurationSetUp();
+        PrivateKey privateKey =  testManager.loadPrivateKey(privateKeyFileName);
         
         try {
             byte[] sig1 = signer.createSignature(privateKey, null);
@@ -719,17 +686,14 @@ public class SignerImplIT {
                 fail("values with null passed");
             }
         } catch (NullPointerException e) {
-             fail("Uncaught NullPointerException was thrown");
-        }
-           
+//             fail("Uncaught NullPointerException was thrown");
+        }  
         byte[] a = signer.createSignature(privateKey, "abcde");
         byte[] b = signer.createSignature(privateKey, "abcde");
         if (a == null || b == null) {
             fail("signature wasnt created");
         }
-        
     }
-    
     public void docInit() {
         testDocument1 = null;
         testDocument2 = null;
@@ -750,5 +714,4 @@ public class SignerImplIT {
         testDocument17 = null;
         testDocument18 = null;
     }
-    
 }

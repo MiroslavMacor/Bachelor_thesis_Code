@@ -5,7 +5,6 @@
  */
 package cz.muni.ics.remsig.impl;
 
-import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_EXPIRED;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_NOT_YET_VALID;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_PASSWORD_RESET;
@@ -48,7 +47,6 @@ import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import javax.xml.transform.TransformerException;
 import org.dbunit.database.DatabaseConfig;
-import org.dbunit.database.DatabaseConnection;
 import org.dbunit.ext.mysql.MySqlDataTypeFactory;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNot.not;
