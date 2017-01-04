@@ -30,6 +30,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.log4j.Logger;
+import com.sun.management.OperatingSystemMXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.util.logging.Level;
+import javax.management.MBeanServerConnection;
 
 //import cz.muni.ics.remsig.impl.TestManager;
 
@@ -104,7 +109,8 @@ public class PerformanceTest {
                 startTime = System.nanoTime();
                 for (int i = 0; i < numberOfIterations; i++) {
                     try {
-                        sendPost(methodName, postData);                    
+                        sendPost(methodName, postData);  
+//                        System.out.println("Before " + getCPUUssage());
                     } catch (Exception e) {
                         log.error("Error in interation " + i +" "+ e.getMessage());
                     }
@@ -150,7 +156,7 @@ public class PerformanceTest {
         startTime = System.nanoTime();    
         switch(typeOfCycle.toLowerCase()) {
             case "for":{
-                for (int i = 0; i < numberOfIterations; i++) {
+                for (int i = 0; i < numberOfIterations; i++) {                    
                     try {
                         for (int j = 0; j < methodNames.size(); j++) {
                             sendPost(methodNames.get(j), postDataInSequence.get(j));
@@ -191,27 +197,77 @@ public class PerformanceTest {
     public static void main(String[] args){
         
         PerformanceTest http = new PerformanceTest();
+        //TestManager testManager = new TestManager();
+        //testManager.databaseInit();
         
         http.executeTest();
     }
     private void executeTest() {
-        int numberOfRepetion = 5;
+        int numberOfRepetion = 100;
         String cycleUsed= "for";// for or while
-        long timeElapsed = 0;
-        try {            
-            timeElapsed = runTest(cycleUsed, numberOfRepetion, "checkPassword",checkPassword);
+        long timeElapsed = 0;         
+        
+        ArrayList<String> postMethods = new ArrayList<>();
+        ArrayList<String> postData = new ArrayList<>();
+
+        postMethods.add("changeCertificateStatus");
+        postMethods.add("changeCertificateStatus");
+        postData.add(changeCertificateStatus);
+        postData.add(changeCertificateStatusB);
+        
+        try {
+            MBeanServerConnection mbsc = ManagementFactory.getPlatformMBeanServer();
+            OperatingSystemMXBean osMBean = ManagementFactory.newPlatformMXBeanProxy(
+            mbsc, ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME, OperatingSystemMXBean.class);
+            
+            OperatingSystemMXBean osbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            RuntimeMXBean runbean = (RuntimeMXBean) ManagementFactory.getRuntimeMXBean();
+            
+            int CPUNumber = 0;
+            long prevUpTime = 0;
+            long prevProcessTime = 0 ;            
+            long nanoBefore = 0; 
+            long CPUBefore = 0 ;
+            
+            double memoryBefore = getMemoryUssageSystem();
+            double cpuBefore = getCPUUssage();
+            
+        if (osMBean != null){
+            
+            nanoBefore = System.nanoTime();
+            CPUBefore = osMBean.getProcessCpuTime();
+            CPUNumber = osbean.getAvailableProcessors();
+            prevUpTime = runbean.getUptime();
+            prevProcessTime = osbean.getProcessCpuTime();            
+            System.out.println("systemMemory before = " + memoryBefore + "cpuBeforeSystem = " + cpuBefore );
+            
+            System.out.println("Before " + getCPUUssage());
+            
+            
+            timeElapsed = runTest(cycleUsed, numberOfRepetion, "sign",sign);
+            
+            
+            double memoryUsed = getMemoryUssageSystem() - memoryBefore;
+            double CPUUSed =  getCPUUssage() - cpuBefore;
+            System.out.println("systemMemory used = " + memoryUsed + "cpu used = " + CPUUSed );
+                    
             log.info("all done in time =" +timeElapsed/1000000000);
-
-            ArrayList<String> postMethods = new ArrayList<>();
-            ArrayList<String> postData = new ArrayList<>();
-
-            postMethods.add("changeCertificateStatus");
-            postMethods.add("changeCertificateStatus");
-            postData.add(changeCertificateStatus);
-            postData.add(changeCertificateStatusB);
-
-            timeElapsed = runTest(cycleUsed, numberOfRepetion, postMethods, postData);
-            log.info("all done in time =" +timeElapsed/1000000000);
+            log.info("with memory Usage = "+ getMemoryUssage() + "MB");
+            System.out.println("After " + getCPUUssage());
+            afterRuntime(osMBean, nanoBefore, CPUBefore);            
+            double result = runTimeUpgradeAfter(osbean, runbean, CPUNumber, prevUpTime, prevProcessTime);
+            System.out.println("Runtime Upgrade percentage =  " + result);
+            
+            
+//            runTimeUpgradeBefore(osbean, runbean, CPUNumber, prevUpTime, prevUpTime);            
+//            System.out.println("Before " + getCPUUssage());
+//            timeElapsed = runTest(cycleUsed, numberOfRepetion, postMethods, postData);
+//            log.info("all done in time =" +timeElapsed/1000000000);
+//            log.info("with memory Usage = "+ getMemoryUssage() + "MB");
+//            System.out.println("After " + getCPUUssage());
+//            afterRuntime(osMBean, nanoBefore, CPUBefore);
+//            runTimeUpgradeBefore(osbean, runbean, CPUNumber, prevUpTime, prevUpTime);
+        }
         }catch (Exception e){
             log.error(e);
         }
@@ -244,8 +300,8 @@ public class PerformanceTest {
         context.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
 
         SSLSocketFactory factory = context.getSocketFactory();
-        //URL sslUrl = new URL("https://localhost:8443/ForkTesting/Fork/"+methodName);
-        URL sslUrl = new URL(serverAddress + methodName);
+        URL sslUrl = new URL("https://localhost:8443/RemSig/"+methodName);
+        //URL sslUrl = new URL(serverAddress + methodName);
         postSpecification(sslUrl, factory, postData);
     }   
     public void postSpecification(URL sslUrl,SSLSocketFactory factory,String postData ) throws IOException    {
@@ -268,7 +324,8 @@ public class PerformanceTest {
                 while ((inputLine = in.readLine()) != null) {
                         response.append(inputLine);
                 }
-        }        
+        }
+//        log.info(response.toString());
     }
         
     public void exportStringAsXml(String input, String outputFilename){
@@ -279,6 +336,127 @@ public class PerformanceTest {
         {
             log.error(e.getMessage());
         }
+    }
+    long temp = 1024L * 1024L;
+    public long getMemoryUssage(){     
+        Runtime runtime = Runtime.getRuntime();         
+        //runtime.gc();
+        System.out.println("Total memory " + bytesToMegabytes(Runtime.getRuntime().totalMemory()));
+        return bytesToMegabytes(runtime.totalMemory() - runtime.freeMemory());
+    }
+     private long bytesToMegabytes(long bytes) {
+        return bytes / temp;
+    }
+    public double getCPUUssage(){
+        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
+                OperatingSystemMXBean.class);
+        double result = osBean.getSystemCpuLoad();
+        //System.out.println("Process load = " + result);
+        //System.out.println("System load = "  + osBean.getSystemCpuLoad());
+        //System.out.println("Total memory fomr os bean  = "  + bytesToMegabytes(osBean.getTotalPhysicalMemorySize()));
+        return result;
+    }
+    public double getMemoryUssageSystem(){
+        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
+                OperatingSystemMXBean.class);
+        System.out.println("FREE memory  = "  + bytesToMegabytes(osBean.getFreePhysicalMemorySize()));
+        
+        return bytesToMegabytes(osBean.getTotalPhysicalMemorySize() - osBean.getFreePhysicalMemorySize());        
+    }
+    
+    /*
+    double  getProcessCpuLoad()
+    Returns the "recent cpu usage" for the Java Virtual Machine process.
+
+    long    getProcessCpuTime()
+    Returns the CPU time used by the process on which the Java virtual machine is running in nanoseconds.
+
+    double  getSystemCpuLoad()
+    Returns the "recent cpu usage" for the whole system.
+    */
+    double javacpu;
+    double uptime;
+    private void _getJavaRuntime() {
+        OperatingSystemMXBean osbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        RuntimeMXBean runbean = (RuntimeMXBean) ManagementFactory.getRuntimeMXBean();
+        int nCPUs = osbean.getAvailableProcessors();
+        long prevUpTime = runbean.getUptime();
+        long prevProcessCpuTime = osbean.getProcessCpuTime();
+        try {
+         Thread.sleep(500);
+        } catch (Exception e) { 
+        }
+        osbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        long upTime = runbean.getUptime();
+        long processCpuTime = osbean.getProcessCpuTime();
+        if (prevUpTime > 0L && upTime > prevUpTime) {
+            long elapsedCpu = processCpuTime - prevProcessCpuTime;
+            long elapsedTime = upTime - prevUpTime;
+            javacpu = Math.min(99F, elapsedCpu / (elapsedTime * 10000F * nCPUs));
+        } else {
+            javacpu = 0.001;
+        }
+        uptime = runbean.getUptime();
+    }
+    private void runTimeUpgradeBefore(OperatingSystemMXBean osbean, RuntimeMXBean runbean,int nCPUs, long prevUpTime, long prevProcessCpuTime){
+        osbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        runbean = (RuntimeMXBean) ManagementFactory.getRuntimeMXBean();
+        nCPUs = osbean.getAvailableProcessors();
+        prevUpTime = runbean.getUptime();
+        prevProcessCpuTime = osbean.getProcessCpuTime();
+    }
+    private double runTimeUpgradeAfter(OperatingSystemMXBean osbean, RuntimeMXBean runbean,int nCPUs, long prevUpTime, long prevProcessCpuTime){
+        osbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        long upTime = runbean.getUptime();
+        long processCpuTime = osbean.getProcessCpuTime();
+        if (prevUpTime > 0L && upTime > prevUpTime) {
+            long elapsedCpu = processCpuTime - prevProcessCpuTime;
+            long elapsedTime = upTime - prevUpTime;
+            javacpu = Math.min(99F, elapsedCpu / (elapsedTime * 10000F * nCPUs));
+        } else {
+            javacpu = 0.001;
+        }
+        uptime = runbean.getUptime();
+        return javacpu;
+    }
+   
+    
+    
+    private void runtimeTest() throws IOException{
+        MBeanServerConnection mbsc = ManagementFactory.getPlatformMBeanServer();
+
+       OperatingSystemMXBean osMBean = ManagementFactory.newPlatformMXBeanProxy(
+       mbsc, ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME, OperatingSystemMXBean.class);
+
+       long nanoBefore = System.nanoTime();
+       long cpuBefore = osMBean.getProcessCpuTime();
+
+       // Call an expensive task, or sleep if you are monitoring a remote process
+
+       long cpuAfter = osMBean.getProcessCpuTime();
+       long nanoAfter = System.nanoTime();
+
+       long percent;
+       if (nanoAfter > nanoBefore)
+        percent = ((cpuAfter-cpuBefore)*100L)/
+          (nanoAfter-nanoBefore);
+       else percent = 0;
+
+       System.out.println("Cpu usage: "+percent+"%");
+    }
+    
+    private long afterRuntime(OperatingSystemMXBean osMBean, long nanoBefore , long cpuBefore){
+       long cpuAfter = osMBean.getProcessCpuTime();
+       long nanoAfter = System.nanoTime();
+       long percent;
+       
+       if (nanoAfter > nanoBefore)
+        percent = ((cpuAfter-cpuBefore)*100L)/
+          (nanoAfter-nanoBefore);
+       else percent = 0;
+       System.out.println("Cpu usage: "+percent+"%");
+    
+        return percent;
     }
     static {
     //for localhost testing only
