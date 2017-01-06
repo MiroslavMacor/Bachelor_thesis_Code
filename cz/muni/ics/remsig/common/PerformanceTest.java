@@ -33,6 +33,7 @@ import org.apache.log4j.Logger;
 import com.sun.management.OperatingSystemMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.text.DecimalFormat;
 import java.util.logging.Level;
 import javax.management.MBeanServerConnection;
 
@@ -87,7 +88,7 @@ public class PerformanceTest {
     String signPdf = testManager.convertToStringFromXmlFile(
             directoryPathToxmlFile+ "signPdf.xml",false);
     
-    Logger log = TestManager.setUpLogger(IntegrationTest.class);
+    Logger log = TestManager.setUpLogger(PerformanceTest.class);
                 
         
         /**
@@ -194,82 +195,75 @@ public class PerformanceTest {
         }
         return time;
     }        
-    public static void main(String[] args){
+    public static void main (String[] args){
         
         PerformanceTest http = new PerformanceTest();
-        //TestManager testManager = new TestManager();
-        //testManager.databaseInit();
+//        TestManager testManager = new TestManager();
+//        testManager.databaseInit();
+ 
+ 
         
         http.executeTest();
     }
     private void executeTest() {
-        int numberOfRepetion = 100;
+//        boolean doLog = false;
+        int numberOfRepetion = 50;
         String cycleUsed= "for";// for or while
         long timeElapsed = 0;         
         
+//        try {
         ArrayList<String> postMethods = new ArrayList<>();
         ArrayList<String> postData = new ArrayList<>();
 
-        postMethods.add("changeCertificateStatus");
-        postMethods.add("changeCertificateStatus");
-        postData.add(changeCertificateStatus);
-        postData.add(changeCertificateStatusB);
-        
-        try {
-            MBeanServerConnection mbsc = ManagementFactory.getPlatformMBeanServer();
-            OperatingSystemMXBean osMBean = ManagementFactory.newPlatformMXBeanProxy(
-            mbsc, ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME, OperatingSystemMXBean.class);
+        postMethods.add("changePassword");
+        postMethods.add("changePassword");
+        postData.add(changePasswordB);
+        postData.add(changePasswordB);
+        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
+                OperatingSystemMXBean.class);
             
-            OperatingSystemMXBean osbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            RuntimeMXBean runbean = (RuntimeMXBean) ManagementFactory.getRuntimeMXBean();
-            
-            int CPUNumber = 0;
-            long prevUpTime = 0;
-            long prevProcessTime = 0 ;            
-            long nanoBefore = 0; 
-            long CPUBefore = 0 ;
-            
-            double memoryBefore = getMemoryUssageSystem();
-            double cpuBefore = getCPUUssage();
-            
-        if (osMBean != null){
-            
-            nanoBefore = System.nanoTime();
-            CPUBefore = osMBean.getProcessCpuTime();
-            CPUNumber = osbean.getAvailableProcessors();
-            prevUpTime = runbean.getUptime();
-            prevProcessTime = osbean.getProcessCpuTime();            
-            System.out.println("systemMemory before = " + memoryBefore + "cpuBeforeSystem = " + cpuBefore );
-            
-            System.out.println("Before " + getCPUUssage());
-            
-            
-            timeElapsed = runTest(cycleUsed, numberOfRepetion, "sign",sign);
-            
-            
-            double memoryUsed = getMemoryUssageSystem() - memoryBefore;
-            double CPUUSed =  getCPUUssage() - cpuBefore;
-            System.out.println("systemMemory used = " + memoryUsed + "cpu used = " + CPUUSed );
+        double memoryBefore = getMemoryUssageSystem();
+        double cpuBefore = getCPUUssage(osBean);     
+//        DecimalFormat df = new DecimalFormat("#.##");
+        System.out.println("systemMemory before = " + memoryBefore + "cpuBeforeSystem = " + cpuBefore );
+//        for(int i =0; i < postMethods.size(); i++){
+//            for(int i =postMethods.size()-1; i < postMethods.size(); i++){
+//            for(int j = 1; j < 7 ; ++j){
+//                if (j > 3) doLog = true;
                     
-            log.info("all done in time =" +timeElapsed/1000000000);
-            log.info("with memory Usage = "+ getMemoryUssage() + "MB");
-            System.out.println("After " + getCPUUssage());
-            afterRuntime(osMBean, nanoBefore, CPUBefore);            
-            double result = runTimeUpgradeAfter(osbean, runbean, CPUNumber, prevUpTime, prevProcessTime);
-            System.out.println("Runtime Upgrade percentage =  " + result);
-            
-            
-//            runTimeUpgradeBefore(osbean, runbean, CPUNumber, prevUpTime, prevUpTime);            
-//            System.out.println("Before " + getCPUUssage());
-//            timeElapsed = runTest(cycleUsed, numberOfRepetion, postMethods, postData);
-//            log.info("all done in time =" +timeElapsed/1000000000);
-//            log.info("with memory Usage = "+ getMemoryUssage() + "MB");
-//            System.out.println("After " + getCPUUssage());
-//            afterRuntime(osMBean, nanoBefore, CPUBefore);
-//            runTimeUpgradeBefore(osbean, runbean, CPUNumber, prevUpTime, prevUpTime);
-        }
-        }catch (Exception e){
-            log.error(e);
+                try {
+
+                    timeElapsed = runTest(cycleUsed, numberOfRepetion, "signPKCS7",signPKCS7);
+//                    timeElapsed = runTest(cycleUsed, numberOfRepetion, "signPdf",signPdf);
+                    
+//                    timeElapsed = runTest(cycleUsed, numberOfRepetion, "importCertificate",importCertificate);
+
+//                    timeElapsed = runTest(cycleUsed, numberOfRepetion, postMethods,postData);
+
+                    double memoryUsed = getMemoryUssageSystem() - memoryBefore;
+                    double ok = getCPUUssage(osBean) ;
+                    double CPUUSed =  ok - cpuBefore;
+    //                System.out.println("systemMemory used = " + memoryUsed + "cpu used = " + CPUUSed );
+                    
+                    
+                    
+//                    if (doLog){
+                        
+                        log.info("all done in time =" +timeElapsed/1000000000 +
+                                " with memory Usage = "+ getMemoryUssage() + "MB "
+                                + " cpu used = " + (100*CPUUSed) + "other memory method  = " +memoryUsed);
+                        System.out.println("just cpu " + ok);
+                        System.out.println("");
+//                    }
+    //                log.info("with memory Usage = "+ getMemoryUssage() + "MB");
+
+
+                //}
+
+                }catch (Exception e){
+                    log.error(e);
+//                }
+//            }
         }
     }
     
@@ -325,7 +319,7 @@ public class PerformanceTest {
                         response.append(inputLine);
                 }
         }
-//        log.info(response.toString());
+        log.info(response.toString());
     }
         
     public void exportStringAsXml(String input, String outputFilename){
@@ -340,16 +334,14 @@ public class PerformanceTest {
     long temp = 1024L * 1024L;
     public long getMemoryUssage(){     
         Runtime runtime = Runtime.getRuntime();         
-        //runtime.gc();
+        runtime.gc();
         System.out.println("Total memory " + bytesToMegabytes(Runtime.getRuntime().totalMemory()));
         return bytesToMegabytes(runtime.totalMemory() - runtime.freeMemory());
     }
      private long bytesToMegabytes(long bytes) {
         return bytes / temp;
     }
-    public double getCPUUssage(){
-        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
-                OperatingSystemMXBean.class);
+    public double getCPUUssage(OperatingSystemMXBean osBean){        
         double result = osBean.getSystemCpuLoad();
         //System.out.println("Process load = " + result);
         //System.out.println("System load = "  + osBean.getSystemCpuLoad());
@@ -359,7 +351,7 @@ public class PerformanceTest {
     public double getMemoryUssageSystem(){
         OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
                 OperatingSystemMXBean.class);
-        System.out.println("FREE memory  = "  + bytesToMegabytes(osBean.getFreePhysicalMemorySize()));
+        //System.out.println("FREE memory  = "  + bytesToMegabytes(osBean.getFreePhysicalMemorySize()));
         
         return bytesToMegabytes(osBean.getTotalPhysicalMemorySize() - osBean.getFreePhysicalMemorySize());        
     }
@@ -458,6 +450,67 @@ public class PerformanceTest {
     
         return percent;
     }
+    public ArrayList<String> loadAllMethods(){
+        ArrayList<String> result = new ArrayList<>();
+        String generateRequest = "generateRequest";                      
+        String listCertificatesWithStatus = "listCertificatesWithStatus";
+        String listAllCertificatesWithStatus = "listAllCertificatesWithStatus";
+        String exportPKCS12 = "exportPKCS12";
+        String checkPassword = "checkPassword";        
+        String signPKCS7 = "signPKCS7";
+        String signPdf = "signPdf";
+        String sign = "sign";   
+        
+        result.add(generateRequest);
+        result.add(listAllCertificatesWithStatus);
+        result.add(exportPKCS12);
+        result.add(checkPassword);        
+        result.add(listCertificatesWithStatus); 
+        
+        //result.add(signPKCS7);        
+        //result.add(signPdf);
+        result.add(sign);
+        result.add(sign);
+        
+        return result;
+    }
+    
+    public ArrayList<String> loadAllData(){
+        ArrayList<String> result = new ArrayList<>();
+//        generateRequest = "generateRequest";                      
+//        listCertificatesWithStatus = "listCertificatesWithStatus";
+//        listAllCertificatesWithStatus = "listAllCertificatesWithStatus";
+//        exportPKCS12 = "exportPKCS12";
+//        checkPassword = "checkPassword";        
+//        signPKCS7 = "signPKCS7";
+//        signPdf = "signPdf";
+//        sign = "sign";   
+        
+        result.add(generateRequest);   
+        result.add(listAllCertificatesWithStatus);
+        result.add(exportPKCS12);
+        result.add(checkPassword);  
+        result.add(listCertificatesWithStatus); 
+        
+        //result.add(signPKCS7);        
+        //result.add(signPdf);
+        result.add(sign);
+        result.add(signNoId);
+        
+        return result;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     static {
     //for localhost testing only
     javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(

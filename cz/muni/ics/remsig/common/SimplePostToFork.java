@@ -81,7 +81,9 @@ public class SimplePostToFork {
         context.init(keyManagerFactory.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
 
         SSLSocketFactory factory = context.getSocketFactory();
-        URL sslUrl = new URL("https://localhost:8443/ForkTesting/Fork/"+methodName);               
+//        URL sslUrl = new URL("https://localhost:8443/RemSig/Fork/"+methodName);               
+        URL sslUrl = new URL("https://localhost:8443/RemSig/"+methodName);               
+//        URL sslUrl = new URL("https://localhost:8443/ForkTesting/Fork/"+methodName);               
         postSpecification(sslUrl, factory, postData);
         // <url-pattern>/NewServlet</url-pattern>
     }
@@ -90,6 +92,7 @@ public class SimplePostToFork {
     public void postSpecification(URL sslUrl,SSLSocketFactory factory,String postData ) throws IOException
     {
             HttpsURLConnection ssl_con = (HttpsURLConnection) sslUrl.openConnection();
+            //HttpsURLConnection ssl_con = (HttpsURLConnection) new URL(("https://localhost:8443/RemSig/"+"generateRequest")).openConnection();// sslUrl.openConnection();;
 
             ssl_con.setSSLSocketFactory(factory);
             ssl_con.setRequestMethod("POST");

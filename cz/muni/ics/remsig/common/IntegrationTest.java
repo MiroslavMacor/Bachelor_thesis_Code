@@ -196,7 +196,7 @@ public class IntegrationTest {
         String changeCertificateStatus = "changeCertificateStatus";
         String uploadPrivateKey = "uploadPrivateKey";
         String stats = "stats";
-        String signPKCS7 = "importCertificate";
+        String signPKCS7 = "signPKCS7";
         String signPdf = "signPdf";
         String sign = "sign";   
         
