@@ -8,6 +8,8 @@ package cz.muni.ics.remsig.impl;
 import cz.muni.ics.remsig.common.XmlParser;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import static org.hamcrest.core.IsNot.not;
@@ -107,8 +109,7 @@ public class XmlParserIT {
      * Test of getValueByXPath method, of class XmlParser.
      */
     @Test
-    public void testGetValueByXPath() throws Exception {
-        
+    public void testGetValueByXPath() throws Exception {        
         XmlParser xmlParser = new XmlParser();
         try {
             xmlParser.getValueByXPath(null);
@@ -118,23 +119,20 @@ public class XmlParserIT {
         
         testDocument1 = loadDoc("test/testFiles/testGenerate.xml");
         xmlParser.setInputDocument(testDocument1);
-        assertEquals("2354",(xmlParser.getValueByXPath("/remsig/requestId")));
-        String a = null;
+        assertEquals("2354",(xmlParser.getValueByXPath("/remsig/requestId")));        
         try {
-             a =xmlParser.getValueByXPath("/remsig/wrong/path/away");
-             
+            String incorrectData = xmlParser.getValueByXPath("/remsig/wrong/path/away");
+            assertTrue(incorrectData.isEmpty());             
         } catch (Exception e) {
             fail(e.getMessage());
         }
-        
     }
 
     /**
      * Test of convertStringToDocument method, of class XmlParser.
      */
     @Test
-    public void testConvertStringToDocument() throws Exception {
-        
+    public void testConvertStringToDocument() throws Exception {        
         XmlParser xmlParser = new XmlParser();
         try {
             xmlParser.convertStringToDocument(null);
@@ -144,18 +142,21 @@ public class XmlParserIT {
         String xml = testManager.convertToStringFromXmlFile("test/testFiles/testGenerate.xml");
         testDocument1 = loadDoc("test/testFiles/testGenerate.xml");
         try {
-        xmlParser.convertStringToDocument(xml);
-        String[] xmlExtraction = new String[]{"requestId","certificateRequest","subjectKey",
-                "operationId"}; 
-       
-        ArrayList<String> dataFromDocEx = testManager.extractMultipleElementsFromDoc(xmlExtraction, testDocument1);
-        ArrayList<String> dataFromDocOr = testManager.extractMultipleElementsFromDoc(xmlExtraction, xmlParser.getInputDocument());
-        assertEquals(dataFromDocEx, dataFromDocOr);
+            xmlParser.convertStringToDocument(xml);
+            String[] xmlExtraction = new String[]{"requestId","certificateRequest","subjectKey",
+                    "operationId"}; 
+
+            ArrayList<String> dataFromDocEx = testManager.extractMultipleElementsFromDoc(xmlExtraction, testDocument1);
+            ArrayList<String> dataFromDocOr = testManager.extractMultipleElementsFromDoc(xmlExtraction, xmlParser.getInputDocument());
+            assertEquals(dataFromDocEx, dataFromDocOr);
         
-        } catch (Exception e) {
+            XmlParser xmlParserIncorrectData = new XmlParser();
+            xmlParserIncorrectData.convertStringToDocument("NonParsableData");
+            assertThat(xmlParserIncorrectData.getInputDocument(), not(xmlParser.getInputDocument()));            
+            
+        }catch (Exception e){
             fail(e.getMessage());
         }
-        
     }
 
     /**
@@ -163,14 +164,21 @@ public class XmlParserIT {
      */
     @Test
     public void testConvertDocumentToString() throws Exception {
-        System.out.println("convertDocumentToString");
-        Document doc = null;
-        XmlParser instance = new XmlParser();
-        String expResult = "";
-        String result = instance.convertDocumentToString(doc);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        XmlParser xmlParser = new XmlParser();
+        try {
+            xmlParser.convertDocumentToString(null);
+        } catch (NullPointerException e) {
+            fail("Uncaught NullPointerException"+ e.getMessage());
+        }
+        String xml = testManager.convertToStringFromXmlFile("test/testFiles/testGenerate.xml");
+        testDocument1 = loadDoc("test/testFiles/testGenerate.xml");        
+        testDocument2 = loadDoc("test/testFiles/testStats.xml");
+        try {
+            assertEquals(xml, xmlParser.convertDocumentToString(testDocument1));
+            assertThat(xml, not(xmlParser.convertDocumentToString(testDocument2)));
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -178,31 +186,44 @@ public class XmlParserIT {
      */
     @Test
     public void testPrepareNewRemSigDocument() throws Exception {
-        System.out.println("prepareNewRemSigDocument");
-        XmlParser xmlParser = new XmlParser();
+        XmlParser xmlParser = new XmlParser();        
         testDocument1 = null;
+        assertEquals(xmlParser.getOutputDocument(),testDocument1);
         xmlParser.prepareNewRemSigDocument();
-        assertEquals(xmlParser.getInputDocument(),testDocument1);
-        // TODO review the generated test code and remove the default call to fail.
-        
+        assertThat(xmlParser.getOutputDocument(),not(testDocument1));        
     }
 
     /**
      * Test of createRemSigElement method, of class XmlParser.
      */
     @Test
-    public void testCreateRemSigElement() throws Exception {
+    public void testCreateRemSigElement()  {
+        XmlParser xmlParser = new XmlParser();
         String name = "userId";
         String value = "25";
         String parentXPath = "/remsig";
-        XmlParser xmlParser = new XmlParser();
-        xmlParser.prepareNewRemSigDocument();        
-        xmlParser.createRemSigElement(name, value, parentXPath);
-        String result =testManager.extractElementFromXmlDoc(xmlParser.getOutputDocument(), "userId");        
-        assertEquals(result, value);
-        assertThat(result, not("somethingElse"));
-        // TODO review the generated test code and remove the default call to fail.
-        //fail("The test case is a prototype.");
+        try {
+            xmlParser.createRemSigElement(null, value, parentXPath);
+            xmlParser.createRemSigElement(name, null, parentXPath);
+            xmlParser.createRemSigElement(name, value, null);
+            xmlParser.createRemSigElement(null, value, null);
+            xmlParser.createRemSigElement(null, null, parentXPath);
+            xmlParser.createRemSigElement(name, null, null);
+            xmlParser.createRemSigElement(null, null, null);
+        } catch (NullPointerException e) {
+            fail("Uncaught null pointer exception + "+ e.getMessage());
+        } catch (RemSigException ex) {            
+        }
+        
+        try {
+            xmlParser.prepareNewRemSigDocument();        
+            xmlParser.createRemSigElement(name, value, parentXPath);
+            String result =testManager.extractElementFromXmlDoc(xmlParser.getOutputDocument(), "userId");
+            assertEquals(result, value);
+            assertThat(result, not("somethingElse"));
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
     }
 
     /**
@@ -210,29 +231,54 @@ public class XmlParserIT {
      */
     @Test
     public void testCreateRemSigAttribute() throws Exception {
+        XmlParser xmlParser = new XmlParser();
         String name = "userId";
         String value = "25";
-        String xPath = "/remsig";
-        XmlParser xmlParser = new XmlParser();
-        xmlParser.prepareNewRemSigDocument(); 
-        xmlParser.createRemSigAttribute(xPath, name, value);
-        testManager.exportDocIntoXml("testParserCreateRemSigAttribute.xml", xmlParser.getOutputDocument());
-        String[] xmlExtraction = new String[]{"dn","issuer","serialNumber",
-                "expirationFrom","expirationTo","certificatePEM","chainPEM"};
-        ArrayList<String[]>  a =testManager.parseXmlDoc(xmlParser.getOutputDocument(), new String[]{"userID"});       
-        assertEquals(value, a.get(0)[0]);
+        String parentXPath = "/remsig";
+        String result = "";
+        
+        try {
+            xmlParser.createRemSigAttribute(null, name, value);
+            xmlParser.createRemSigAttribute(parentXPath, null, value);
+            xmlParser.createRemSigAttribute(parentXPath, name, null);
+            xmlParser.createRemSigAttribute(null, name, null);
+            xmlParser.createRemSigAttribute(null, null, value);
+            xmlParser.createRemSigAttribute(parentXPath, null, null);
+            xmlParser.createRemSigAttribute(null, null, null);
+        } catch (NullPointerException e) {
+//            fail("Uncaught null pointer exception + "+ e.getMessage());
+        } catch (RemSigException ex) {            
+        }
+        try {
+            xmlParser.prepareNewRemSigDocument(); 
+            xmlParser.createRemSigAttribute(parentXPath, name, value);
+            result = testManager.extractAttributeFromDoc(xmlParser.getOutputDocument(), "userId","remsig");            
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+            assertEquals(value, result);
+            assertThat(result, not("somethingElse"));            
     }
 
     /**
      * Test of createStyleSheet method, of class XmlParser.
      */
     @Test
-    public void testCreateStyleSheet() {
-        System.out.println("createStyleSheet");
-        XmlParser instance = new XmlParser();
-        instance.createStyleSheet();
-        //testDocument1.ge
-        
+    public void testCreateStyleSheet() {        
+        XmlParser xmlParser = new XmlParser();        
+        try {
+            xmlParser.createStyleSheet();
+        } catch (NullPointerException e) {
+//            fail("Uncaught null pointer exception + "+ e.getMessage());
+        }
+        try {
+            xmlParser.prepareNewRemSigDocument();
+            xmlParser.createStyleSheet();
+            
+        }   catch (RemSigException ex) {            
+        }   catch (Exception e){
+            fail(e.getMessage());
+        }
     }
     
     public Document loadDoc(String filename) throws Exception

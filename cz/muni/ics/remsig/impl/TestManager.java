@@ -5,8 +5,9 @@
  */
 package cz.muni.ics.remsig.impl;
 
-import static com.sun.xml.internal.messaging.saaj.util.Base64.base64Decode;
-import cz.muni.ics.remsig.common.IntegrationTest;
+//import static com.sun.xml.internal.messaging.saaj.util.Base64.base64Decode;
+//import org.apache.commons.codec.binary.Base64;
+//import cz.muni.ics.remsig.common.IntegrationTest;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_EXPIRED;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_NOT_YET_VALID;
 import static cz.muni.ics.remsig.impl.CertificateManagerImpl.STATE_PASSWORD_RESET;
@@ -89,6 +90,10 @@ import java.io.*;
 import java.security.*;
 import java.security.spec.*;
 import java.sql.Statement;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.dbunit.database.DatabaseConfig;
@@ -433,6 +438,8 @@ public class TestManager {
     
     /**
      * takes file path and  returns its content  as byte[]
+     * @param filePath
+     * @return 
      */
     public byte[] loadFileBytes(String filePath)
     {
@@ -1050,6 +1057,13 @@ public class TestManager {
         }
         return configuration;
     }
-    
-    
+
+    public String extractAttributeFromDoc(Document document, String attributeName, String elementTag) throws XPathExpressionException {                
+        NodeList nodeList = document.getElementsByTagName(elementTag);
+        String result = "";
+        for(int x=0,size= nodeList.getLength(); x<size; x++) {
+            result = nodeList.item(x).getAttributes().getNamedItem(attributeName).getNodeValue();            
+        }
+    return result;
+    }
 }
