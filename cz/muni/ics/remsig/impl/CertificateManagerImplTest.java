@@ -38,12 +38,10 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import javax.xml.transform.TransformerException;
 import org.dbunit.database.DatabaseConfig;
@@ -140,9 +138,6 @@ public class CertificateManagerImplTest extends DBTestCase {
     
     private String workingDatabase = config.getProperty("workingDatabaseInXml");
     private ITable expectedTable = null;
-    @Mock
-    Service service;
-
     @Override
     protected IDataSet getDataSet() throws Exception {
 
@@ -165,10 +160,7 @@ public class CertificateManagerImplTest extends DBTestCase {
         System.setProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_USERNAME,
                 dbUserName);
         System.setProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_PASSWORD,
-                dbPassword);
-           
-
-        // 
+                dbPassword);           
     }
 
     @BeforeClass
@@ -273,7 +265,7 @@ public class CertificateManagerImplTest extends DBTestCase {
                 manager.generateRequest(person, null);
                 manager.generateRequest(null, null);
             } catch (NullPointerException e) {
-//                fail("UncaughtNullPointerException"+ e.getMessage());
+                fail("UncaughtNullPointerException"+ e.getMessage());
             }
 
             ResultSet r = statement.executeQuery("SELECT COUNT(*) AS rowcount FROM credentials");
@@ -591,7 +583,7 @@ public class CertificateManagerImplTest extends DBTestCase {
             manager.changePassword(null, 0, null, null);
              
         } catch (NullPointerException e) {
-//            fail("nullPointer exception was not caught"+e);
+            fail("nullPointer exception was not caught"+e);
         }
         try {
             manager.changePassword(anderson, andersonCerId, andersonDefPass, igorDefPass);
@@ -619,7 +611,7 @@ public class CertificateManagerImplTest extends DBTestCase {
              manager.resetPassword(null, andersonCerId);
              
         } catch (NullPointerException e) {
-//            fail("Uncaught nullPointerException");
+            fail("Uncaught nullPointerException");
             
         }
         try {
@@ -642,7 +634,7 @@ public class CertificateManagerImplTest extends DBTestCase {
             
             manager.checkPassword(anderson, andersonCerId, andersonDefPass);
         } catch (Exception e) {
-//            fail("failed to reset password ");
+            fail("failed to reset password ");
         }
         
     }
@@ -670,7 +662,7 @@ public class CertificateManagerImplTest extends DBTestCase {
                      }
             manager.changeCertificateStatus(null, bobaFetCerId, STATE_SUSPENDED);
         } catch (NullPointerException e) {
-            //fail("unCaught nullPointerException"); 
+            fail("unCaught nullPointerException"); 
         }
 
         // testing standard changing of the certificate status
@@ -701,7 +693,7 @@ public class CertificateManagerImplTest extends DBTestCase {
 
              
         } catch (NullPointerException e) {
-            //fail("failed to change status as expected");
+            fail("failed to change status as expected");
         }
         // testing if status does change after certificate is revoked
         try {
@@ -797,7 +789,7 @@ public class CertificateManagerImplTest extends DBTestCase {
         try {
             manager.listCertificatesWithStatus(null, 1);
         } catch (NullPointerException e) {
-            //fail("unreported nullPpointerException");
+            fail("unreported nullPpointerException");
         }
         
         statement.execute("UPDATE credentials SET state= null WHERE userId="+
@@ -836,7 +828,7 @@ public class CertificateManagerImplTest extends DBTestCase {
             dataFromDatabase = extractMultipleCollumsFromDatabase(databaseExtraction, "credentials", ruleB);
 
             for (int i = 0; i < dataFromDoc.size(); i++) {
-//                assertEquals("at element "+databaseExtraction[i] ,dataFromDoc.get(i), dataFromDatabase.get(i));
+                assertEquals("at element "+databaseExtraction[i] ,dataFromDoc.get(i), dataFromDatabase.get(i));
             }
 
             dataFromDoc = extractMultipleElementsFromDoc(xmlExtraction, testDocument3);
@@ -953,8 +945,6 @@ public class CertificateManagerImplTest extends DBTestCase {
         databaseAnderson = testManager.extractMultipleCollumsFromDatabase(databaseExtraction, "credentials", ruleA);        
         databaseBobaFet = testManager.extractMultipleCollumsFromDatabase(databaseExtraction, "credentials", ruleB);
         databaseCyril = testManager.extractMultipleCollumsFromDatabase(databaseExtraction, "credentials", ruleC);
-        
-      
 
         statement.execute("UPDATE credentials SET state= "+STATE_REVOKED+" WHERE userId="+ anderson.getId()+" AND id= "+andersonCerId);
         statement.execute("UPDATE credentials SET state= "+STATE_SUSPENDED+" WHERE userId="+ bobaFet.getId()+" AND id= "+bobaFetCerId);
@@ -1004,8 +994,8 @@ public class CertificateManagerImplTest extends DBTestCase {
         ArrayList<String[]> expiredData = testManager.parseXmlDoc(testDocument6, xmlExtraction);
 
         assertArrayEquals(databaseAnderson.toArray(), resetData.get(0));
-//        assertArrayEquals(databaseBobaFet.toArray(), notYetValidData.get(0));
-//        assertArrayEquals(databaseCyril.toArray(), expiredData.get(0));
+        assertArrayEquals(databaseBobaFet.toArray(), notYetValidData.get(0));
+        assertArrayEquals(databaseCyril.toArray(), expiredData.get(0));
     }
 
     /**
@@ -1027,10 +1017,6 @@ public class CertificateManagerImplTest extends DBTestCase {
 
         testDocument2 = manager.resetPassword(bobaFet,bobaFetCerId);
         byte[] passHashB = testManager.extractElementFromXmlDoc(testDocument2, "password").getBytes();
-
-        
-//        String[] dataToBeExtracted = new String[]{"userId","id","dn","issuer","serial","expiration_from",
-//            "expiration_to"}; 
         
         String ruleA = "userId ="+anderson.getId() +" AND id = " + andersonCerId+"";
         String ruleB = "userId ="+bobaFet.getId() +" AND id = " + bobaFetCerId+"";
@@ -1044,7 +1030,7 @@ public class CertificateManagerImplTest extends DBTestCase {
             testDocument7 =manager.uploadPrivateKey(null, null, cyrilCerId, differentData);
             testDocument8 =manager.uploadPrivateKey(null, null, cyrilCerId, null);
         } catch (NullPointerException e) {
-//            fail("uncaught null pointer exception");
+            fail("uncaught null pointer exception");
         }
         Document[] allDoc = new Document[]{testDocument3, testDocument4, testDocument5, testDocument6,testDocument7,testDocument8};
         if (0 != testManager.chceckDocuments(allDoc, 0, 0))
@@ -1082,7 +1068,7 @@ public class CertificateManagerImplTest extends DBTestCase {
             assertThat("Key wasnt changed",originalBobaFet, not(uploadedBobaFet));
             assertThat("Key wasnt changed",originalCyril, is(uploadedCyril));
         } catch (Error e) {
-//            fail(e.getMessage());
+            fail(e.getMessage());
         }
     }
 
@@ -1198,7 +1184,7 @@ public class CertificateManagerImplTest extends DBTestCase {
             
                         
         } catch (Exception e) {
-//            fail("Did not imported certificate " +e.getMessage());
+            fail("Did not imported certificate " +e.getMessage());
         }
     }
      

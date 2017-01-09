@@ -4,7 +4,9 @@
  * and open the template in the editor.
  */
 
-import com.sun.xml.internal.messaging.saaj.util.Base64;
+//import com.sun.xml.internal.messaging.saaj.util.Base64;
+//import org.bouncycastle.util.encoders.Base64;
+import org.apache.commons.codec.binary.Base64;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -25,11 +27,13 @@ import java.util.Date;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -62,23 +66,23 @@ import javax.servlet.http.HttpServletResponse;
 })
 
 public class Fork extends HttpServlet {
-        public static final String STATS = "/stats";
-	public static final String LOGS = "/logs";
-	public static final String CHECK_PASSWORD = "/checkPassword";
-	public static final String LIST_CERTS = "/listCertificates";
-	public static final String SIGN = "/sign";
-	public static final String SIGN_PKCS7 = "/signPKCS7";
-	public static final String SIGN_PDF = "/signPdf";
+        public static final String STATS = "/Fork/stats";
+	public static final String LOGS = "/Fork/logs";
+	public static final String CHECK_PASSWORD = "/Fork/checkPassword";
+	public static final String LIST_CERTS = "/Fork/listCertificates";
+	public static final String SIGN = "/Fork/sign";
+	public static final String SIGN_PKCS7 = "/Fork/signPKCS7";
+	public static final String SIGN_PDF = "/Fork/signPdf";
 
-	public static final String GEN_REQUEST = "/generateRequest";
-	public static final String IMPORT_CERT = "/importCertificate";
-	public static final String IMPORT_PKCS12 = "/importPKCS12";
-	public static final String EXPORT_PKCS12 = "/exportPKCS12";
-	public static final String LIST_CERTS_STATUS = "/listCertificatesWithStatus";
-	public static final String LIST_ALL_CERTS_STATUS = "/listAllCertificatesWithStatus";
-	public static final String CHANGE_CERT_STATUS = "/changeCertificateStatus";
-	public static final String CHANGE_PASSWORD = "/changePassword";
-	public static final String UPLOAD_PRIVATE_KEY = "/uploadPrivateKey";    
+	public static final String GEN_REQUEST = "/Fork/generateRequest";
+	public static final String IMPORT_CERT = "/Fork/importCertificate";
+	public static final String IMPORT_PKCS12 = "/Fork/importPKCS12";
+	public static final String EXPORT_PKCS12 = "/Fork/exportPKCS12";
+	public static final String LIST_CERTS_STATUS = "/Fork/listCertificatesWithStatus";
+	public static final String LIST_ALL_CERTS_STATUS = "/Fork/listAllCertificatesWithStatus";
+	public static final String CHANGE_CERT_STATUS = "/Fork/changeCertificateStatus";
+	public static final String CHANGE_PASSWORD = "/Fork/changePassword";
+	public static final String UPLOAD_PRIVATE_KEY = "/Fork/uploadPrivateKey";    
            
         X509Certificate clientCert;
         
@@ -116,11 +120,16 @@ public class Fork extends HttpServlet {
 	}
         
     @Override
-    protected void  doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException  {
-        response.getOutputStream().write("HELLO".getBytes());
+    public void init() throws ServletException {
+        config = prepareConfigFile("/home/miroslav/Documents/Bakalarka/Remsig/test/testConfig/test.properties");
+        outputDirectory = config.getProperty("forkOutputDirectory");
     }
-    
+        
     @Override
+    protected void  doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException  {
+        response.getOutputStream().write("HELLO Fork class working".getBytes());        
+    }
+    @Override    
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {        
         String uniqueID = UUID.randomUUID().toString();
        	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss-");
@@ -138,8 +147,7 @@ public class Fork extends HttpServlet {
 		}
         ServletContext context = getServletContext();
         
-        String urlPath = request.getRequestURI();
-        //String urlPath = request.getServletPath()
+        String urlPath = request.getRequestURI();        
         request.getRequestURI();        
         String methodFromUrl = urlPath.substring(urlPath.lastIndexOf("/")+1,urlPath.length());
         
@@ -151,12 +159,6 @@ public class Fork extends HttpServlet {
         }
         String data = buffer.toString();
         
-        PrintWriter toDelete = new PrintWriter(outputDirectory +"input/" + fileName);
-                    
-                    toDelete.println(data);
-                    
-        toDelete.close();
-       
         try {
              // sending data to first server and getting response
             URL sslUrl = new URL(serverAddress + methodFromUrl); // PHP server
@@ -168,15 +170,13 @@ public class Fork extends HttpServlet {
                 originalPost.println(data);
                 originalPost.close();
                 PrintWriter originalResponce = new PrintWriter(outputDirectory +"/outputPHP/" + fileName);
-                originalResponce.println(responsePHP);
+                
                 originalResponce.close();
-                URL sslUrlJava = new URL(serverAddressJava); // Javaserver
-                //URL sslUrlJava = new URL("https://localhost:8443/RemSig/"+methodFromUrl); // Javaserver
-                //String responseJava = sendPost(methodFromUrl, data, sslUrlJava);
-                PrintWriter responseJavaO = new PrintWriter(outputDirectory +"/outputJava/" + fileName);
-                //responseJavaO.println(responseJava);
-                responseJavaO.close();                    
-                out.write(responsePHP);
+                URL sslUrlJava = new URL(serverAddressJava +methodFromUrl); // Javaserver)                
+                String responseJava = sendPost(methodFromUrl, data, sslUrlJava);
+                PrintWriter responseJavaPrinter = new PrintWriter(outputDirectory +"/outputJava/" + fileName);
+                responseJavaPrinter.println(responseJava);
+                responseJavaPrinter.close();                                    
             }
             catch(FileNotFoundException e)
             {
@@ -244,18 +244,41 @@ public class Fork extends HttpServlet {
         //System.out.println(				"\nSending 'POST' request to URL : " + sslUrl);		
         //System.out.println("Response Code : " + responseCode);
 
-        StringBuilder response = new StringBuilder();
+        StringBuilder responseToUser = new StringBuilder();
         try (BufferedReader in = new BufferedReader(
                         new InputStreamReader(ssl_con.getInputStream()))) {
                 String inputLine;
 
                 while ((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
+                        responseToUser.append(inputLine);
                 }
         }
-        System.out.println(response.toString());
-        return response.toString();
+        System.out.println(responseToUser.toString());
+        return responseToUser.toString();
     }
+    public String sendForward(HttpServletRequest request, HttpServletResponse response, String methodName){
+        RequestDispatcher rd = request.getRequestDispatcher("../" + methodName);
+        
+            try {
+                rd.include(request, response);
+//                rd.forward(request, response);
+            } catch (ServletException | IOException ex) {
+                System.out.println("MIROMIRO6" + ex.getMessage());
+                Logger.getLogger(Fork.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            return response.toString();
+            
+    }
+    public void sendRedirect(HttpServletRequest request, HttpServletResponse response, String methodName){
+            try {
+                response.sendRedirect(serverAddress + methodName);
+            } catch (IOException ex) {
+                Logger.getLogger(Fork.class.getName()).log(Level.SEVERE, null, ex);
+            }
+    }
+    
+    
         
     public boolean filesCheck(String firstFileName, String secondFileName){
         // if there is need for more precise chceck TestManager can get attributes from xml
@@ -275,9 +298,10 @@ public class Fork extends HttpServlet {
     public String loadFile(String filePath)
     {
         String encodedString = null;
+        Base64 base64 = new Base64();
         try {
             byte[] bytes = Files.readAllBytes(Paths.get(filePath));
-            byte[] encoded = Base64.encode(bytes);
+            byte[] encoded = base64.encode(bytes);
             encodedString = new String(encoded);
         } catch (IOException ex) {
             
@@ -294,4 +318,19 @@ public class Fork extends HttpServlet {
         }
         return configuration;
     }
+    static {
+	    //for localhost testing only
+	    javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
+	    new javax.net.ssl.HostnameVerifier(){
+
+            @Override
+	        public boolean verify(String hostname,
+	                javax.net.ssl.SSLSession sslSession) {
+	            if (hostname.equals("localhost")) {
+	                return true;
+	            }
+	            return false;
+	        }
+	    });
+	}
 }
