@@ -104,7 +104,7 @@ public class Fork extends HttpServlet {
         
     @Override
     public void init() throws ServletException {
-        config = prepareConfigFile("/home/miroslav/Documents/Bakalarka/Remsig/test/testConfig/test.properties");
+        config = prepareConfigFile("/test/testConfig/test.properties");
         outputDirectory = config.getProperty("forkOutputDirectory");
     }
         

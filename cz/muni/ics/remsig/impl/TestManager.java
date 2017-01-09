@@ -111,7 +111,7 @@ public class TestManager {
     private CertificateManagerImpl manager;
     private Properties configuration;
     public static final String CONFIG_FILE = "/etc/remsig/remsig.properties";
-    public static final String CONFIG_FILE_TEST = "/home/miroslav/Documents/Bakalarka/Remsig/test/testConfig/test.properties";
+    public static final String CONFIG_FILE_TEST = "/test/testConfig/test.properties";
     private final static org.slf4j.Logger logger
             = LoggerFactory.getLogger(CertificateManagerImplTest.class);
     private IDatabaseTester databaseTester;
@@ -1031,8 +1031,7 @@ public class TestManager {
     
     public static Logger setUpLogger(Class inputClasss){
     Logger logger = org.apache.log4j.Logger.getLogger(inputClasss);
-    PropertyConfigurator.configure("/home/miroslav/Documents/Bakalarka/Remsig/"
-            + "test/testConfig/log4j.properties");
+    PropertyConfigurator.configure("test/testConfig/log4j.properties");
         return logger;    
     }
     /**
