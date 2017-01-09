@@ -5,7 +5,7 @@
  */
 package cz.muni.ics.remsig.impl;
 
-import commons.Settings;
+
 import static cz.muni.ics.remsig.impl.CertificateManagerImplTest.CONFIG_FILE;
 
 import java.io.FileInputStream;
@@ -50,8 +50,7 @@ public class SignerImplIT {
     private IDatabaseTester databaseTester;
     private IDatabaseConnection dbUnitConnection;
     private Connection connection;
-    private java.sql.Statement statement;
-    private String initXmlDoc = Settings.initXmlDoc;     
+    private java.sql.Statement statement;     
     private ITable expectedTable = null;
     public TestManager testManager= new TestManager();
     SignerImpl signer;
@@ -62,6 +61,12 @@ public class SignerImplIT {
     String pdf = config.getProperty("testPdf");
     String notAPdf = config.getProperty("testNotAPdf");
     String privateKeyFileName = config.getProperty("testPrivateKey");
+    public static final String dbDriverClass = config.getProperty("dbDriverClass");
+    public static final String dbConnectionUrl = config.getProperty("dbConnectionUrl");
+    public static final String dbUserName = config.getProperty("dbUserName");
+    public static final String dbPassword =  config.getProperty("dbPass");
+    public static final String applicationContext = config.getProperty("applicationContextPath");
+    public static final String initXmlDoc = config.getProperty("initialDatabaseInXml");
     
     
     org.w3c.dom.Document testDocument1 = null;
@@ -138,8 +143,8 @@ public class SignerImplIT {
                     "Error while loading configuration properties",
                     ex, ErrorCode.ERROR259EN);
         }
-        databaseTester = new JdbcDatabaseTester(Settings.dbDriverClass,
-                Settings.dbConnectionUrl, Settings.dbUserName, Settings.dbPassword);
+        databaseTester = new JdbcDatabaseTester(dbDriverClass,
+                dbConnectionUrl, dbUserName, dbPassword);
         IDataSet dataSet = new FlatXmlDataSetBuilder().setColumnSensing(true).
                 build(new FileInputStream(initXmlDoc));
         
@@ -282,7 +287,7 @@ public class SignerImplIT {
                 fail("Input null value passed");
             }
         } catch (NullPointerException e) {
-//            fail("Uncaught nullPointer exception" +e.getMessage());
+            fail("Uncaught nullPointer exception" +e.getMessage());
         }
         
         
@@ -559,7 +564,7 @@ public class SignerImplIT {
                 testDocument5 = signer.signPdf(anderson, null, null, andersonCerId);
                 testDocument6 = signer.signPdf(null, null, null, andersonCerId);
         } catch (NullPointerException e) {
-            //fail("uncaught nullpointerexception was thrown");
+            fail("uncaught nullpointerexception was thrown"+ e.getMessage());
             
         }
         Document[] testSubjects = new Document[]{testDocument1,testDocument2,testDocument3,testDocument4,testDocument5,
@@ -686,7 +691,7 @@ public class SignerImplIT {
                 fail("values with null passed");
             }
         } catch (NullPointerException e) {
-//             fail("Uncaught NullPointerException was thrown");
+             fail("Uncaught NullPointerException was thrown");
         }  
         byte[] a = signer.createSignature(privateKey, "abcde");
         byte[] b = signer.createSignature(privateKey, "abcde");

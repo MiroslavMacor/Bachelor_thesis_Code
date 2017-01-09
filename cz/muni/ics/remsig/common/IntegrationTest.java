@@ -45,7 +45,6 @@ public class IntegrationTest {
     Logger log = TestManager.setUpLogger(IntegrationTest.class);
     public static void main(String[] args) throws Exception {        
         IntegrationTest integrationTest = new IntegrationTest();
-        TestManager testManagera = new TestManager();
         
         integrationTest.executeTest();
     }

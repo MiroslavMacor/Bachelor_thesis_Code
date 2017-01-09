@@ -385,7 +385,7 @@ public class CertificateManagerImplTest extends DBTestCase {
                 manager.importPKCS12(anderson, null, andersonDefPass, null);
                 manager.importPKCS12(null, null, null, null);
         } catch (Exception e) {
-            //fail("Uncaucght nullPointerException" +e);
+            fail("Uncaucght nullPointerException" +e);
         }
             
         ResultSet r1 = statement.executeQuery("SELECT certificate,dn, serial, issuer,"
@@ -425,7 +425,7 @@ public class CertificateManagerImplTest extends DBTestCase {
         String[] dataBaseEntry3 = new String[]{"certificate", "dn", "serial", "issuer",
                             "expiration_from", "expiration_to"};
         
-        //testManager.chcekNonEqualValuesOfDatabase(r3, dataBaseEntry3,5);
+        testManager.chcekNonEqualValuesOfDatabase(r3, dataBaseEntry3,5);
         r2.close();
         r3.close();
                 
@@ -468,7 +468,7 @@ public class CertificateManagerImplTest extends DBTestCase {
                 fail("some key was uploaded with null values");
             }
         } catch (NullPointerException e) {
-//            fail("Uncaught nullPointerException");
+            fail("Uncaught nullPointerException");
         }
         
         try {
@@ -1160,7 +1160,7 @@ public class CertificateManagerImplTest extends DBTestCase {
             }
 
         } catch (NullPointerException e) {
-//            fail("Unreported nullPinterException");
+            fail("Unreported nullPinterException");
         }
         try {
             testDocument1 = manager.importCertificate(anderson, firstCert, certchainC);

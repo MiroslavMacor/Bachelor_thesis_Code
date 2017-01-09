@@ -8,6 +8,7 @@ package cz.muni.ics.remsig.impl;
 import cz.muni.ics.remsig.common.XmlParser;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
@@ -35,6 +36,9 @@ public class XmlParserIT {
     org.w3c.dom.Document testDocument1 = null;
     org.w3c.dom.Document testDocument2 = null;
     TestManager testManager = new TestManager();
+    Properties config = TestManager.prepareConfigFile(TestManager.CONFIG_FILE_TEST);    
+    final String testGenerateRequest = config.getProperty("testGenerateRequest");
+    final String testStats = config.getProperty("testStats");
     
     
     
@@ -48,6 +52,8 @@ public class XmlParserIT {
     
     @Before
     public void setUp() {
+        testDocument1 = null;
+        testDocument2 = null;
     }
     
     @After
@@ -67,18 +73,14 @@ public class XmlParserIT {
          } catch (NullPointerException e) {
              fail("Unreported nullPointerException");
          }
-         
          try {
-             
-            testDocument1 = loadDoc("test/testFiles/testStats.xml");
+            testDocument1 = loadDoc(testStats);
             xmlParser.setInputDocument(testDocument1);
             assertEquals(testDocument1, xmlParser.getInputDocument());
             assertThat(testDocument1, not(testDocument2));
          } catch (Exception e) {
              fail("failed to set document" + e);
          }
-        
-        
     }
 
     
@@ -95,8 +97,7 @@ public class XmlParserIT {
             fail("Unreported nullPointer Exception");
         }
         try {
-            
-            testDocument1 = loadDoc("test/testFiles/testStats.xml");
+            testDocument1 = loadDoc(testStats);
             xmlParser.setOutputDocument(testDocument1);
             assertEquals(testDocument1, xmlParser.getOutputDocument());
             assertThat(testDocument1, not(testDocument2));
@@ -117,7 +118,7 @@ public class XmlParserIT {
             fail("Uncaught nullPointerException");
         }
         
-        testDocument1 = loadDoc("test/testFiles/testGenerate.xml");
+        testDocument1 = loadDoc(testGenerateRequest);
         xmlParser.setInputDocument(testDocument1);
         assertEquals("2354",(xmlParser.getValueByXPath("/remsig/requestId")));        
         try {
@@ -139,8 +140,8 @@ public class XmlParserIT {
         } catch (NullPointerException e) {
             fail("Uncaught NullPointerException"+ e.getMessage());
         }
-        String xml = testManager.convertToStringFromXmlFile("test/testFiles/testGenerate.xml");
-        testDocument1 = loadDoc("test/testFiles/testGenerate.xml");
+        String xml = testManager.convertToStringFromXmlFile(testGenerateRequest);
+        testDocument1 = loadDoc(testGenerateRequest);
         try {
             xmlParser.convertStringToDocument(xml);
             String[] xmlExtraction = new String[]{"requestId","certificateRequest","subjectKey",
@@ -170,9 +171,9 @@ public class XmlParserIT {
         } catch (NullPointerException e) {
             fail("Uncaught NullPointerException"+ e.getMessage());
         }
-        String xml = testManager.convertToStringFromXmlFile("test/testFiles/testGenerate.xml");
-        testDocument1 = loadDoc("test/testFiles/testGenerate.xml");        
-        testDocument2 = loadDoc("test/testFiles/testStats.xml");
+        String xml = testManager.convertToStringFromXmlFile(testGenerateRequest);
+        testDocument1 = loadDoc(testGenerateRequest);        
+        testDocument2 = loadDoc(testStats);
         try {
             assertEquals(xml, xmlParser.convertDocumentToString(testDocument1));
             assertThat(xml, not(xmlParser.convertDocumentToString(testDocument2)));
@@ -246,7 +247,7 @@ public class XmlParserIT {
             xmlParser.createRemSigAttribute(parentXPath, null, null);
             xmlParser.createRemSigAttribute(null, null, null);
         } catch (NullPointerException e) {
-//            fail("Uncaught null pointer exception + "+ e.getMessage());
+            fail("Uncaught null pointer exception + "+ e.getMessage());
         } catch (RemSigException ex) {            
         }
         try {
@@ -269,7 +270,7 @@ public class XmlParserIT {
         try {
             xmlParser.createStyleSheet();
         } catch (NullPointerException e) {
-//            fail("Uncaught null pointer exception + "+ e.getMessage());
+            fail("Uncaught null pointer exception + "+ e.getMessage());
         }
         try {
             xmlParser.prepareNewRemSigDocument();
@@ -289,6 +290,4 @@ public class XmlParserIT {
         Document document = docBuilder.parse(new File(filename));
         return document;
     }
-    
-    
 }

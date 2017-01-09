@@ -463,8 +463,7 @@ public class TestManager {
             while (inRs.next()) {
                 for (String databaseEntry : valuesToChceck) {
                     assertNotNull("Values weren't inserted correctly some of them were null", inRs.getObject(databaseEntry));
-                }
-                //                    ArrayList<String> singleAddress = new ArrayList<String>(); array list declarataion for posiible changes 
+                }                
             }
 
         } catch (SQLException e) {
