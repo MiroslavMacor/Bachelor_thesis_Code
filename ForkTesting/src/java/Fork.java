@@ -102,23 +102,6 @@ public class Fork extends HttpServlet {
         final String exportFilesDirectory = config.getProperty("exportFilesDirectory");
         
         
-        
-        static {
-	    //for localhost testing only
-	    javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
-	    new javax.net.ssl.HostnameVerifier(){
-
-            @Override
-	        public boolean verify(String hostname,
-	                javax.net.ssl.SSLSession sslSession) {
-	            if (hostname.equals("localhost")) {
-	                return true;
-	            }
-	            return false;
-	        }
-	    });
-	}
-        
     @Override
     public void init() throws ServletException {
         config = prepareConfigFile("/home/miroslav/Documents/Bakalarka/Remsig/test/testConfig/test.properties");
@@ -180,30 +163,22 @@ public class Fork extends HttpServlet {
             }
             catch(FileNotFoundException e)
             {
-                //Logger System.out.println(e.getMessage());
-              //  java.util.logging.Logger.getLogger(NewServlet.class.getName()).log(Level.SEVERE, null, e);
-                PrintWriter toDeleteA = new PrintWriter(outputDirectory + "error/file" + fileName);
-                toDeleteA.println(e + System.lineSeparator() + e.getMessage());
-                toDeleteA.close();
+                PrintWriter fileNotFound = new PrintWriter(outputDirectory + "error/file" + fileName);
+                fileNotFound.println(e + System.lineSeparator() + e.getMessage());
+                fileNotFound.close();
             }
             
-        } catch (Exception ex) {
-            //java.util.logging.Logger.getLogger(Spliter.class.getName()).log(Level.SEVERE, null, ex);
-            //java.util.logging.Logger.getLogger(NewServlet.class.getName()).log(Level.SEVERE, null, ex);
-            
-            PrintWriter toDeleteB = new PrintWriter(outputDirectory + "error/all" + fileName);
-            toDeleteB.println(ex.getMessage()+ ex.toString());
-            toDeleteB.close();
+        } catch (Exception ex) {            
+            PrintWriter generalError = new PrintWriter(outputDirectory + "error/all" + fileName);
+            generalError.println(ex.getMessage()+ ex.toString());
+            generalError.close();
         }
     }
     
     private String sendPost(String methodName,String postData,URL url) throws Exception {
-        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-        //KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");        
         KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        String pKeyPassword = defaultKeystorePass;
-        //String pKeyFile = "sub1-cert.p12";
-        //String pKeyFile = "/home/miroslav/Documents/Bakalarka/right.p12";
+        String pKeyPassword = defaultKeystorePass;        
         String pKeyFile = defaultKeystore;
         try (InputStream keyInput = new FileInputStream(pKeyFile)) {
                 keyStore.load(keyInput, pKeyPassword.toCharArray());
@@ -239,10 +214,6 @@ public class Fork extends HttpServlet {
         try (DataOutputStream wr = new DataOutputStream(ssl_con.getOutputStream())) {			
                 wr.writeBytes(postData);
         }
-        int responseCode = ssl_con.getResponseCode();
-
-        //System.out.println(				"\nSending 'POST' request to URL : " + sslUrl);		
-        //System.out.println("Response Code : " + responseCode);
 
         StringBuilder responseToUser = new StringBuilder();
         try (BufferedReader in = new BufferedReader(
@@ -252,32 +223,9 @@ public class Fork extends HttpServlet {
                 while ((inputLine = in.readLine()) != null) {
                         responseToUser.append(inputLine);
                 }
-        }
-        System.out.println(responseToUser.toString());
+        }        
         return responseToUser.toString();
     }
-    public String sendForward(HttpServletRequest request, HttpServletResponse response, String methodName){
-        RequestDispatcher rd = request.getRequestDispatcher("../" + methodName);
-        
-            try {
-                rd.include(request, response);
-//                rd.forward(request, response);
-            } catch (ServletException | IOException ex) {
-                System.out.println("MIROMIRO6" + ex.getMessage());
-                Logger.getLogger(Fork.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            
-            return response.toString();
-            
-    }
-    public void sendRedirect(HttpServletRequest request, HttpServletResponse response, String methodName){
-            try {
-                response.sendRedirect(serverAddress + methodName);
-            } catch (IOException ex) {
-                Logger.getLogger(Fork.class.getName()).log(Level.SEVERE, null, ex);
-            }
-    }
-    
     
         
     public boolean filesCheck(String firstFileName, String secondFileName){
