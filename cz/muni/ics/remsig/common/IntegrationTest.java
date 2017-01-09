@@ -218,19 +218,5 @@ public class IntegrationTest {
         result.add(sign);
         
         return result;
-    }
-    static {
-        //for localhost testing only
-        javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
-            new javax.net.ssl.HostnameVerifier() {
-                    @Override
-                    public boolean verify(String hostname,
-                                    javax.net.ssl.SSLSession sslSession) {
-                            if (hostname.equals("localhost")) {
-                                    return true;
-                            }
-                            return false;
-                    }
-            });
-    }
+    }    
 }

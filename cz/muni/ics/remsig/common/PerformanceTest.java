@@ -303,19 +303,5 @@ public class PerformanceTest {
         OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
                 OperatingSystemMXBean.class);
         return bytesToMegabytes(osBean.getTotalPhysicalMemorySize() - osBean.getFreePhysicalMemorySize());        
-    }    
-    static {
-    //for localhost testing only
-    javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
-        new javax.net.ssl.HostnameVerifier() {
-                @Override
-                public boolean verify(String hostname,
-                                javax.net.ssl.SSLSession sslSession) {
-                        if (hostname.equals("localhost")) {
-                                return true;
-                        }
-                        return false;
-                }
-        });
-    }   
+    }           
 }
